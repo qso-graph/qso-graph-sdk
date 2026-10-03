@@ -1,0 +1,11 @@
+# QGSDK installs into ./prefix (Python, Qt, the compiler, CMake, Ninja); it never enters the repository.
+/prefix/
+# build output
+/build/
+tests/fixture/build/
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+*.log

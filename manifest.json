@@ -1,0 +1,49 @@
+{
+  "comment": "Every version QGSDK installs, in one place. The scripts and CI read this file; change a version here, nowhere else. See docs/manifest.md.",
+  "python": {
+    "comment": "QGSDK's own tooling runs on this Python. It ships with QGSDK and never with QGLogger. No installer, no admin rights, nothing written outside the prefix. Windows: python.org's official build, as its NuGet package (a zip). Linux: python-build-standalone, the relocatable CPython build uv uses (a tarball); the system Python is never used.",
+    "version": "3.13.16",
+    "windows": {
+      "url": "https://api.nuget.org/v3-flatcontainer/python/3.13.16/python.3.13.16.nupkg",
+      "sha256": "95fad176338f1d6a799e45946488063f4aa61764e6cff2f132ddeffbf7a04c34"
+    },
+    "linux": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.13.16%2B20261001-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "sha256": "b55f90dfb060e998a47e4a811dae46aaa27b923244044bbcf88de5e57a5fa4c7"
+    }
+  },
+  "aqtinstall": {
+    "comment": "Installs Qt and its tools without a Qt account. Pinned to a commit: Qt 6.11 changed its repository layout and no release since 3.3.0 reads it (docs/decisions/0002).",
+    "requirement": "aqtinstall @ https://github.com/miurahr/aqtinstall/archive/076e1659807d0b362a3ed684d54c2e9c775eb9c7.zip",
+    "version": "3.3.1.dev166",
+    "version_comment": "A source zip has no git history, so the version aqtinstall would read from git is given here (SETUPTOOLS_SCM_PRETEND_VERSION). No git needed on the machine."
+  },
+  "qt": {
+    "version": "6.12.0",
+    "floor": "6.11",
+    "windows": { "host": "windows", "target": "desktop", "arch": "win64_mingw", "directory": "mingw_64" },
+    "linux": { "host": "linux", "target": "desktop", "arch": "linux_gcc_64", "directory": "gcc_64",
+      "comment": "Built with GCC; the compiler is the system's (any GCC with C++17), with the OpenGL, EGL and xkbcommon headers Qt's CMake files look for. The bootstrap checks for them; QGSDK never installs system packages." }
+  },
+  "tools": {
+    "windows": [
+      { "name": "MinGW", "tool": "tools_mingw1310", "variant": "qt.tools.win64_mingw1310", "version": "13.1.0", "bin": "Tools/mingw1310_64/bin",
+        "comment": "Qt's MinGW binaries are ABI-matched to this compiler. Mixing versions gives crashes that look like application bugs." },
+      { "name": "CMake", "tool": "tools_cmake", "variant": "qt.tools.cmake", "version": "3.30.5", "bin": "Tools/CMake_64/bin" },
+      { "name": "Ninja", "tool": "tools_ninja", "variant": "qt.tools.ninja", "version": "1.12.1", "bin": "Tools/Ninja" }
+    ],
+    "linux": [
+      { "name": "CMake", "tool": "tools_cmake", "variant": "qt.tools.cmake", "version": "3.30.5", "bin": "Tools/CMake/bin" },
+      { "name": "Ninja", "tool": "tools_ninja", "variant": "qt.tools.ninja", "version": "1.12.1", "bin": "Tools/Ninja" }
+    ]
+  },
+  "downloads": {
+    "comment": "Tools that don't come from Qt's repositories: downloaded from their publisher, checked against the SHA-256 here, unpacked under <prefix>/tools/<name>.",
+    "windows": [
+      { "name": "NSIS", "version": "3.13", "bin": "nsis-3.13",
+        "url": "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip",
+        "sha256": "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8",
+        "comment": "Makes QGLogger's Windows installer (CPack's NSIS generator). The portable zip: no installer, no admin rights. SHA-256 taken from the download, which matched the SHA-1 SourceForge publishes for it." }
+    ]
+  }
+}

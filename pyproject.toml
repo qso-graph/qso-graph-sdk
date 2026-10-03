@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
+[project]
+name = "qgsdk"
+version = "0.1.0"
+description = "QGSDK: provisions a Qt build environment for QGLogger and wraps its CMake build."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+dependencies = []  # aqtinstall is installed by the bootstrap, at the version manifest.json pins
+
+[project.scripts]
+qgsdk = "qgsdk.cli:main"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=77"]  # SPDX licence expression (PEP 639)
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,11 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
+# Runs QGSDK's command from its environment (after bootstrap/install.sh): ./qgsdk doctor, ./qgsdk build ...
+here="$(cd "$(dirname "$0")" && pwd)"
+exe="${QGSDK_PREFIX:-$here/prefix}/venv/bin/qgsdk"
+if [ ! -x "$exe" ]; then
+    echo "QGSDK isn't installed yet: run bootstrap/install.sh" >&2
+    exit 1
+fi
+exec "$exe" "$@"

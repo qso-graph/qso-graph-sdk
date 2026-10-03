@@ -1,0 +1,34 @@
+# CI runs on the lab's own machines (self-hosted runners), so it costs nothing.
+#
+# This file: the Python tooling's unit tests, on every change (seconds; no Qt needed).
+# windows.yml: Milestone 0 on a fresh Windows, when something it tests changes.
+#
+# SELF-HOSTED ONLY WHILE PRIVATE. A self-hosted runner runs the code in every pull request. That is safe
+# only while this repository is private and only we can open pull requests. The day it goes public, or
+# outside contributors can open pull requests, switch every job to
+# GitHub's own runners: on a public repository they are free, so there is no reason left to self-host.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:  # a newer push cancels the run it supersedes
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: [self-hosted, lab-9975]  # the lab's own runner (fleet-ops gh-runner.yml): no GitHub minutes
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3.12 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --disable-pip-version-check --quiet -e ".[test]"
+          "$RUNNER_TEMP/venv/bin/python" -m pytest -q
