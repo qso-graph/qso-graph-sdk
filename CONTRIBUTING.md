@@ -3,6 +3,9 @@
 Thank you for helping. QGSDK exists so that building QGLogger never depends on one person, so the most
 useful contributions make it simpler, clearer, or work on one more machine.
 
+**The short version, and the hard rules:** [AGENTS.md](AGENTS.md). Written for AI coding agents, and the quickest
+start for anyone.
+
 ## How a change gets in
 
 1. Open an issue describing the problem or idea, unless it's a small fix.
