@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 <#
 .SYNOPSIS
   QGSDK's check: from nothing, it gives this Windows machine a working Qt build and packaging toolchain.
