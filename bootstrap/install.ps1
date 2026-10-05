@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 <#
 .SYNOPSIS
   QGSDK for Windows: one command to a working Qt build environment for QGLogger.
