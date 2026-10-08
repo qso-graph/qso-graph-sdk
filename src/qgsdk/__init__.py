@@ -9,4 +9,10 @@ The pieces:
 - cli.py       the `qgsdk` command: install, env, build, doctor.
 """
 
-__version__ = "0.1.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    # Read from the installed distribution, so pyproject.toml is the only place the version is written.
+    __version__ = version("qgsdk")
+except PackageNotFoundError:  # source tree without dist metadata
+    __version__ = "0.0.0-dev"
