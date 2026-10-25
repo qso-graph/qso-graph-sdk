@@ -5,9 +5,13 @@ build and check. When a rule here and your task disagree, stop and ask.
 
 ## What this is
 
-**QSO Graph SDK (QGSDK): the build kit for [QSO Graph Logger](https://github.com/qso-graph/qso-graph-logger).**
-One command installs the tools it takes to compile and package the logger, at pinned versions, on a
-clean machine. It is tooling only: the logger is compiled and packaged from its own repository.
+**QSO Graph SDK (QGSDK): the build kit for QSO Graph's applications.** One command installs the tools it
+takes to compile and package them, at pinned versions, on a clean machine. It is tooling only: an
+application is compiled and packaged from its own repository.
+
+QSO Graph Logger, the Qt application this kit was first built for, was retired on 2026-10-25 and its
+repository deleted. The Qt tooling stays until KI7MT retires it; a QSO Graph Desktop (Electron) profile
+is planned in #4.
 
 ## Rules (each one has a test you can apply)
 
