@@ -1,16 +1,20 @@
 # QSO Graph SDK (QGSDK)
 
-The build kit for [QSO Graph Logger](https://github.com/qso-graph/qso-graph-logger) (QGLogger): the
-tools it takes to compile and package it, installed with one command, at pinned versions. Part of the
-[qso-graph](https://github.com/qso-graph) family of amateur-radio tools; sister to JTSDK (WSJT-X) and
-FLSDK (fldigi).
+The build kit for QSO Graph's applications: the tools it takes to compile and package them, installed
+with one command, at pinned versions. Part of the [qso-graph](https://github.com/qso-graph) family of
+amateur-radio tools; sister to JTSDK (WSJT-X) and FLSDK (fldigi).
+
+> **QSO Graph Logger (QGLogger) was retired on 2026-10-25**, in favour of
+> [QSO Graph Desktop](https://github.com/qso-graph/qso-graph-desktop). Its repository is gone; it never
+> got past its scaffolding. The Qt tooling below is what QGSDK installed for it, and it stays until
+> KI7MT retires it. A profile for building QSO Graph Desktop is planned
+> ([#4](https://github.com/qso-graph/qso-graph-sdk/issues/4)).
 
 **Why it exists.** A program nobody else can build is a program nobody else can keep alive. QGSDK writes
-down, as code, everything it takes to build QGLogger, so a new maintainer starts from one command instead
-of from someone's memory.
+down, as code, everything it takes to build an application, so a new maintainer starts from one command
+instead of from someone's memory.
 
-QGSDK is the tooling. QGLogger is compiled and packaged from its own checkout, with these tools: see
-[QGLogger's README](https://github.com/qso-graph/qso-graph-logger#readme).
+QGSDK is the tooling; an application is compiled and packaged from its own checkout, with these tools.
 
 ## What it installs
 
@@ -49,7 +53,7 @@ You need nothing installed first: no Python, no git, no Visual Studio, no Qt acc
    prefix\qgsdk-env.cmd            # cmd
    ```
 
-4. Compile and package QGLogger from its checkout: [QGLogger's README](https://github.com/qso-graph/qso-graph-logger#readme).
+4. Compile and package the application from its checkout.
 
 `qgsdk doctor` shows what's installed and where. `qgsdk build --source <logger checkout>` is a shortcut
 for QGLogger's configure-and-build step; you never need it.
@@ -83,7 +87,7 @@ Tested on Rocky Linux 9 and Debian 12; any x86-64 distribution of that age or ne
    . ./prefix/qgsdk-env.sh
    ```
 
-5. Compile and package QGLogger from its checkout: [QGLogger's README](https://github.com/qso-graph/qso-graph-logger#readme).
+5. Compile and package the application from its checkout.
 
 macOS comes later.
 
