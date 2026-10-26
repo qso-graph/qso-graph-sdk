@@ -100,7 +100,7 @@ try {
         $Work = Join-Path ([IO.Path]::GetPathRoot($Prefix)) ("qgd" + (Get-Random -Maximum 10000))
         $Ref = if ($env:QGSDK_DESKTOP_REF) { $env:QGSDK_DESKTOP_REF } else { "main" }
         Run "git clone -q --depth 1 --branch $Ref https://github.com/qso-graph/qso-graph-desktop.git `"$Work`""
-        foreach ($tool in "node", "npm", "cargo", "rustc", "go", "cmake", "ninja", "nasm") {
+        foreach ($tool in "node", "npm", "cargo", "rustc", "go", "cmake", "ninja", "nasm", "perl") {
             $Where = (Get-Command $tool).Source
             if (-not $Where.StartsWith($Prefix)) { throw "$tool is not the prefix's: $Where" }
         }

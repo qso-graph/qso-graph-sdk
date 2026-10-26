@@ -8,7 +8,7 @@ amateur-radio tools; sister to JTSDK (WSJT-X) and FLSDK (fldigi).
 
 | Profile | For | Installs |
 |---|---|---|
-| `desktop` | QSO Graph Desktop, the Electron hub | Node.js, Rust, and Go and CMake for its FIPS crypto module; on Windows also Ninja, NASM, libclang and git |
+| `desktop` | QSO Graph Desktop, the Electron hub | Node.js, Rust, and Go and CMake for its FIPS crypto module; on Windows also Ninja, NASM, libclang, Perl and git |
 | `logger` | QSO Graph Logger, the Qt application | Qt, its compiler, CMake, Ninja; NSIS on Windows for the installer |
 | `mcp` | qso-graph's MCP servers | uv, and the Pythons the servers test against (3.11 to 3.13); git on Windows |
 
@@ -37,6 +37,7 @@ QGSDK is the tooling; an application is compiled and packaged from its own check
 | CMake | 4.4.4 | ✓ | ✓ | ✓ | building AWS-LC's FIPS module |
 | Ninja, NASM | 1.13.2, 3.02 | ✓ | | | building AWS-LC's FIPS module on Windows |
 | libclang | 23.1.4 | ✓ | | | bindgen, which the FIPS module needs on Windows (only libclang and its headers are unpacked) |
+| Perl | 5.42.3.1 | ✓ | | | the FIPS module's build on Windows (Strawberry Perl's portable build; only `perl\` is unpacked) |
 | C/C++ compiler | | Microsoft's C++ Build Tools (needs an administrator) | the system's GCC | Apple's clang (Xcode command-line tools) | |
 | git | | MinGit 2.56.0 | the system's | the Xcode command-line tools' | |
 | **mcp** | | | | | |
@@ -223,6 +224,7 @@ licence.
 | Ninja (Windows) | desktop | Apache-2.0 |
 | NASM (Windows) | desktop | BSD-2-Clause |
 | libclang, from LLVM (Windows) | desktop | Apache-2.0 WITH LLVM-exception |
+| Perl, from Strawberry Perl (Windows) | desktop | Artistic-1.0-Perl OR GPL-1.0-or-later |
 
 ## Learn more
 

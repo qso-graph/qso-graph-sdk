@@ -11,7 +11,7 @@ supports Windows, Linux and macOS. The first two:
 
 - **`desktop`**: QSO Graph Desktop. Node.js and Rust at the versions Desktop pins (`.node-version`,
   `rust-toolchain.toml`), and Go and CMake for AWS-LC's FIPS module, which the credential core links. On
-  Windows the FIPS build also needs Ninja, NASM and bindgen, which loads libclang: QGSDK unpacks just
+  Windows the FIPS build also needs Ninja, NASM, Perl (Strawberry's portable build: GitHub's runners carry it preinstalled, which hid the need until a clean Windows built it) and bindgen, which loads libclang: QGSDK unpacks just
   libclang and clang's headers from LLVM's release. And there Rust links with Microsoft's C++ Build
   Tools, which need an administrator: the one prerequisite QGSDK checks for on Windows rather than
   installs (Microsoft's installer, never a copy of ours). On Linux arm64 (a Raspberry Pi 5) too.
