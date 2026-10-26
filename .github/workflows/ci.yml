@@ -1,12 +1,16 @@
-# The Python tooling's unit tests, on every change (seconds; no Qt needed), on GitHub's own runners:
-# a public repository must not run pull requests on a self-hosted machine. Milestone 0 itself (a fresh
-# Windows, end to end) is checked by following docs/m0.md on a clean machine.
+# The same shape as the MCP fleet's CI, so every qso-graph repository answers the same questions:
+# lint and types, tests per Python, an audit of what ships, and one `ci-all-green` check for rulesets.
+# GitHub's own runners: a public repository must not run pull requests on a self-hosted machine.
+# Milestone 0 itself (a fresh Windows, end to end) is checked by following docs/m0.md on a clean machine.
 name: CI
 
 on:
+  pull_request:  # no branch filter: a pull request into any branch is tested
   push:
     branches: [main]
-  pull_request:
+  # Weekly, because an advisory is published against a lock that has not changed.
+  schedule:
+    - cron: "17 6 * * 1"
   workflow_dispatch:
 
 concurrency:  # a newer push cancels the run it supersedes
@@ -17,12 +21,68 @@ permissions:
   contents: read
 
 jobs:
-  tests:
+  lint:
+    name: ruff and mypy
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/python" -m pip install --disable-pip-version-check --quiet -e ".[test]"
-          "$RUNNER_TEMP/venv/bin/python" -m pytest -q
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with: { python-version: "3.13" }
+      - run: uv sync --group dev --frozen
+      - run: uv run ruff check .
+      - run: uv run mypy src
+
+  test:
+    name: pytest (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]  # requires-python >=3.11; the SDK ships 3.13
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with: { python-version: "${{ matrix.python-version }}" }
+      - run: uv sync --group dev --frozen
+      - run: uv run pytest -q
+
+  # What ships is bootstrap/tooling-requirements.txt (aqtinstall's dependencies and the build tools,
+  # hash-locked), not uv.lock, which holds development tools only. Both are audited. No --strict: it
+  # fails on the project itself, which is not on PyPI; pip-audit still exits 1 on any vulnerability.
+  audit:
+    name: audit (locked dependencies)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with: { python-version: "3.13" }
+      - run: uv sync --group dev --frozen
+      - name: What ships (bootstrap/tooling-requirements.txt)
+        run: uv run --with pip-audit pip-audit --require-hashes -r bootstrap/tooling-requirements.txt
+      - name: Development tools (uv.lock)
+        run: uv run --with pip-audit pip-audit
+
+  ci-all-green:
+    name: ci-all-green
+    needs: [lint, test, audit]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Every required job succeeded
+        env:
+          LINT: ${{ needs.lint.result }}
+          TEST: ${{ needs.test.result }}
+          AUDIT: ${{ needs.audit.result }}
+        run: |
+          fail=0
+          for j in "lint=$LINT" "test=$TEST" "audit=$AUDIT"; do
+            [ "${j#*=}" = success ] || { echo "FAIL: ${j%%=*} result=${j#*=}"; fail=1; }
+          done
+          exit $fail

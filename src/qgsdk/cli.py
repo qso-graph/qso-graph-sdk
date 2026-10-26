@@ -20,7 +20,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import __version__, manifest as manifest_mod
+from . import __version__
+from . import manifest as manifest_mod
 from .layout import build_environment, default_prefix, download_dir, qt_dir, qt_root, sdk_path
 from .provision import install
 
