@@ -13,8 +13,8 @@ dependencies = []  # aqtinstall is installed by the bootstrap, at the version ma
 [project.scripts]
 qgsdk = "qgsdk.cli:main"
 
-[project.optional-dependencies]
-test = ["pytest>=8"]
+[dependency-groups]
+dev = ["pytest>=8", "ruff", "mypy", "certifi"]  # development only; what ships is bootstrap/tooling-requirements.txt
 
 [build-system]
 requires = ["setuptools>=77"]  # SPDX licence expression (PEP 639)
@@ -22,6 +22,13 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+
+[tool.ruff.lint]
+extend-select = ["I"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

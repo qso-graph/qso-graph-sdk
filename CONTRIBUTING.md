@@ -30,9 +30,13 @@ start for anyone.
 
 ## Running the tests
 
+With [uv](https://docs.astral.sh/uv/):
+
 ```sh
-python -m pip install -e ".[test]"
-python -m pytest
+uv sync --group dev
+uv run ruff check .
+uv run mypy src
+uv run pytest
 ```
 
 ## Licence
