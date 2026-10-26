@@ -84,7 +84,9 @@ winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait
    ```
 
 4. Work in the application's checkout: QSO Graph Desktop with `npm` (its README); the logger with
-   CMake; an MCP server with `uv`.
+   CMake; an MCP server with `uv`. Keep QSO Graph Desktop's checkout near the top of a drive
+   (`C:\src\qso-graph-desktop`, say): Microsoft's compiler can't open a path longer than 260
+   characters, and the credential core's build folders nest deep.
 
 `qgsdk doctor` shows what's installed and where; `qgsdk profiles` lists the profiles. `qgsdk build
 --source <logger checkout>` is a shortcut for the logger's configure-and-build step; you never need it.

@@ -95,7 +95,9 @@ try {
 
     if ($Profiles -contains "desktop") {
         Write-Host "== 6. QSO Graph Desktop: its pins match, it builds, and its fast check passes"
-        $Work = Join-Path ([IO.Path]::GetTempPath()) ("qgsdk-desktop-" + [Guid]::NewGuid())
+        # A short path at the drive's root: Microsoft's compiler can't open a path past 260 characters
+        # (whatever Windows' long-path setting), and Cargo's and CMake's build folders nest deep.
+        $Work = Join-Path ([IO.Path]::GetPathRoot($Prefix)) ("qgd" + (Get-Random -Maximum 10000))
         $Ref = if ($env:QGSDK_DESKTOP_REF) { $env:QGSDK_DESKTOP_REF } else { "main" }
         Run "git clone -q --depth 1 --branch $Ref https://github.com/qso-graph/qso-graph-desktop.git `"$Work`""
         foreach ($tool in "node", "npm", "cargo", "rustc", "go", "cmake", "ninja", "nasm") {
