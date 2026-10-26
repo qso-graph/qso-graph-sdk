@@ -2,31 +2,37 @@
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 <#
 .SYNOPSIS
-  QGSDK's check: from nothing, it gives this Windows machine a working Qt build and packaging toolchain.
+  QGSDK's check on Windows: from nothing, each profile gives this machine what it promises.
 
 .DESCRIPTION
   Run it on a clean Windows 10/11 machine or VM (nothing installed beforehand, no admin rights needed):
 
-  1. installs QGSDK (bootstrap\install.ps1): Python, the tooling, Qt, MinGW, CMake, Ninja, NSIS;
+  1. installs QGSDK with the profiles (bootstrap\install.ps1); default: every profile;
+  logger:
   2. builds the small Qt test program in tests\fixture with `qgsdk build`, and runs it;
   3. builds it again with plain CMake, without QGSDK's wrapper (the deletion test: the wrapper must stay
      optional, so a developer can use CMake directly or their IDE);
-  4. checks NSIS (makensis), which CPack uses to make an installer, runs.
-
-  QGLogger itself is built and packaged from the QGLogger checkout: see QGLogger's README.
+  4. checks NSIS (makensis), which CPack uses to make an installer, runs;
+  mcp:
+  5. runs each Python the MCP servers test against, through uv, and git; uv's Pythons are in the prefix;
+  desktop:
+  6. clones QSO Graph Desktop ($env:QGSDK_DESKTOP_REF, default main), checks its pinned Node.js and Rust
+     are the versions QGSDK installed, and runs its setup and its fast check.
 
   Prints "== PASS" and exits 0 when everything works; otherwise prints "== FAIL: <what>" and exits 1.
   Programs are started with --smoke (they quit once their window is up) on Qt's offscreen platform, so
   this also works over SSH, with no desktop.
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File tests\windows-check.ps1
+  powershell -ExecutionPolicy Bypass -File tests\windows-check.ps1 -Profiles logger,mcp
 #>
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 param(
-    [string]$Prefix = (Join-Path (Split-Path -Parent $PSScriptRoot) "prefix")
+    [string]$Prefix = (Join-Path (Split-Path -Parent $PSScriptRoot) "prefix"),
+    [string[]]$Profiles = @("desktop", "logger", "mcp")
 )
+$Profiles = @($Profiles | ForEach-Object { $_ -split "," } | Where-Object { $_ })
 
 $ErrorActionPreference = "Stop"
 $Repo = Split-Path -Parent $PSScriptRoot
@@ -49,28 +55,78 @@ function Smoke([string]$exe) {
 }
 
 try {
-    Write-Host "== 1. Install QGSDK"
-    Run "powershell -NoProfile -ExecutionPolicy Bypass -File `"$Repo\bootstrap\install.ps1`" -Prefix `"$Prefix`""
+    Write-Host "== 1. Install QGSDK: $($Profiles -join ' ')"
+    Run "powershell -NoProfile -ExecutionPolicy Bypass -File `"$Repo\bootstrap\install.ps1`" -Prefix `"$Prefix`" -Profiles $($Profiles -join ',')"
     $Prefix = (Resolve-Path $Prefix).Path
     $Qgsdk = Join-Path $Prefix "venv\Scripts\qgsdk.exe"
+    . (Join-Path $Prefix "qgsdk-env.ps1")  # the tools on PATH (and Qt's DLLs, for running what was built)
 
-    Write-Host "== 2. Build the fixture with qgsdk build, and run it"
-    Run "`"$Qgsdk`" --prefix `"$Prefix`" build release --source `"$Fixture`""
-    . (Join-Path $Prefix "qgsdk-env.ps1")  # Qt's DLLs on PATH, for running what was built
-    Smoke (Join-Path $Fixture "build\release\qgsdk-fixture.exe")
+    if ($Profiles -contains "logger") {
+        Write-Host "== 2. Build the fixture with qgsdk build, and run it"
+        Run "`"$Qgsdk`" --prefix `"$Prefix`" build release --source `"$Fixture`""
+        Smoke (Join-Path $Fixture "build\release\qgsdk-fixture.exe")
 
-    Write-Host "== 3. The deletion test: the same program with plain CMake, no QGSDK wrapper"
-    Push-Location $Fixture
-    try {
-        Run "cmake --preset debug"
-        Run "cmake --build --preset debug"
-    } finally { Pop-Location }
-    Smoke (Join-Path $Fixture "build\debug\qgsdk-fixture.exe")
+        Write-Host "== 3. The deletion test: the same program with plain CMake, no QGSDK wrapper"
+        Push-Location $Fixture
+        try {
+            Run "cmake --preset debug"
+            Run "cmake --build --preset debug"
+        } finally { Pop-Location }
+        Smoke (Join-Path $Fixture "build\debug\qgsdk-fixture.exe")
 
-    Write-Host "== 4. NSIS, for installers"
-    Run "makensis /VERSION"
+        Write-Host "== 4. NSIS, for installers"
+        Run "makensis /VERSION"
+    }
 
-    Write-Host "== PASS: QGSDK installed; the fixture built with and without its wrapper, and ran; NSIS runs"
+    if ($Profiles -contains "mcp") {
+        Write-Host "== 5. uv, the MCP servers' Pythons, and git"
+        $Uv = (Get-Command uv).Source
+        if (-not $Uv.StartsWith($Prefix)) { throw "uv is not the prefix's: $Uv" }
+        foreach ($v in "3.11", "3.12", "3.13") {
+            $Found = (& uv python find --managed-python $v)
+            if ($LASTEXITCODE -ne 0) { throw "uv has no Python $v" }
+            if (-not $Found.StartsWith($Prefix)) { throw "Python $v is not the prefix's: $Found" }
+            Run "`"$Found`" -c `"import sys, ssl; print(sys.version.split()[0], ssl.OPENSSL_VERSION)`""
+        }
+        $Git = (Get-Command git).Source
+        if (-not $Git.StartsWith($Prefix)) { throw "git is not the prefix's: $Git" }
+        Run "git --version"
+    }
+
+    if ($Profiles -contains "desktop") {
+        Write-Host "== 6. QSO Graph Desktop: its pins match, it builds, and its fast check passes"
+        # A short path at the drive's root: Microsoft's compiler can't open a path past 260 characters
+        # (whatever Windows' long-path setting), and Cargo's and CMake's build folders nest deep.
+        $Work = Join-Path ([IO.Path]::GetPathRoot($Prefix)) ("qgd" + (Get-Random -Maximum 10000))
+        $Ref = if ($env:QGSDK_DESKTOP_REF) { $env:QGSDK_DESKTOP_REF } else { "main" }
+        Run "git clone -q --depth 1 --branch $Ref https://github.com/qso-graph/qso-graph-desktop.git `"$Work`""
+        foreach ($tool in "node", "npm", "cargo", "rustc", "go", "cmake", "ninja", "nasm") {
+            $Where = (Get-Command $tool).Source
+            if (-not $Where.StartsWith($Prefix)) { throw "$tool is not the prefix's: $Where" }
+        }
+        $Want = (Get-Content (Join-Path $Work ".node-version") -Raw).Trim()
+        if ((& node --version) -ne "v$Want") { throw "Node.js $(& node --version), but QSO Graph Desktop pins $Want" }
+        $Toolchain = Join-Path $Work "rust-toolchain.toml"
+        if (Test-Path $Toolchain) {
+            $Want = ((Select-String -Path $Toolchain -Pattern '^channel *= *"(.*)"').Matches[0].Groups[1].Value)
+            $Have = (Get-Content (Join-Path $Repo "manifest.json") -Raw | ConvertFrom-Json).profiles.desktop.rust
+            if ($Have -ne $Want) { throw "QGSDK installs Rust $Have, but QSO Graph Desktop pins $Want" }
+        }
+        Run "rustc --version"
+        Run "go version"
+        Push-Location $Work
+        try {
+            Run "npm ci"
+            Run "node scripts/fetch-adif.mjs"
+            Run "node scripts/fetch-counties.mjs"
+            Run "npm run build"
+            Run "node scripts/fetch-pota.mjs"  # make setup's last step: it reads what the build made
+            Run "npm run check"
+        } finally { Pop-Location }
+        Remove-Item -Recurse -Force $Work -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "== PASS: QGSDK installed $($Profiles -join ' '), and each did what it promises"
     exit 0
 } catch {
     Write-Host "== FAIL: $_"

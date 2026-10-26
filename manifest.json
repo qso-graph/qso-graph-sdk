@@ -1,15 +1,27 @@
 {
-  "comment": "Every version QGSDK installs, in one place. The scripts and CI read this file; change a version here, nowhere else. See docs/manifest.md.",
+  "comment": "Every version QGSDK installs, in one place. The scripts and CI read this file; change a version here, nowhere else. Grouped by profile: install the ones you work on (qgsdk install --profile ...). See docs/manifest.md.",
   "python": {
-    "comment": "QGSDK's own tooling runs on this Python. It ships with QGSDK and never with QGLogger. No installer, no admin rights, nothing written outside the prefix. Windows: python.org's official build, as its NuGet package (a zip). Linux: python-build-standalone, the relocatable CPython build uv uses (a tarball); the system Python is never used.",
+    "comment": "QGSDK's own tooling runs on this Python, whatever the profile. It ships with QGSDK and never with an application. No installer, no admin rights, nothing written outside the prefix. Windows: python.org's official build, as its NuGet package (a zip). Linux and macOS: python-build-standalone, the relocatable CPython build uv uses (a tarball); the system Python is never used. Keyed by platform and machine (uname -m).",
     "version": "3.13.16",
     "windows": {
       "url": "https://api.nuget.org/v3-flatcontainer/python/3.13.16/python.3.13.16.nupkg",
       "sha256": "95fad176338f1d6a799e45946488063f4aa61764e6cff2f132ddeffbf7a04c34"
     },
-    "linux": {
+    "linux-x86_64": {
       "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.13.16%2B20261001-x86_64-unknown-linux-gnu-install_only.tar.gz",
       "sha256": "b55f90dfb060e998a47e4a811dae46aaa27b923244044bbcf88de5e57a5fa4c7"
+    },
+    "linux-arm64": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.13.16%2B20261001-aarch64-unknown-linux-gnu-install_only.tar.gz",
+      "sha256": "e662f77a0c908d8f9555af85fb7fe636a7c34b0c86adc141f0f7b571bbaea6fd"
+    },
+    "macos-arm64": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.13.16%2B20261001-aarch64-apple-darwin-install_only.tar.gz",
+      "sha256": "ca8aa2715d2c89a213b6fbf85f76ae0be7e8e8796f9c61f770d8154caf53bcec"
+    },
+    "macos-x86_64": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.13.16%2B20261001-x86_64-apple-darwin-install_only.tar.gz",
+      "sha256": "c8aa409e0c26a49d14ef64bf5fcddd79e003750481f44aab3517c55b467932d1"
     }
   },
   "aqtinstall": {
@@ -18,32 +30,368 @@
     "version": "3.3.1.dev166",
     "version_comment": "A source zip has no git history, so the version aqtinstall would read from git is given here (SETUPTOOLS_SCM_PRETEND_VERSION). No git needed on the machine."
   },
-  "qt": {
-    "version": "6.12.0",
-    "floor": "6.11",
-    "windows": { "host": "windows", "target": "desktop", "arch": "win64_mingw", "directory": "mingw_64" },
-    "linux": { "host": "linux", "target": "desktop", "arch": "linux_gcc_64", "directory": "gcc_64",
-      "comment": "Built with GCC; the compiler is the system's (any GCC with C++17), with the OpenGL, EGL and xkbcommon headers Qt's CMake files look for. The bootstrap checks for them; QGSDK never installs system packages." }
-  },
-  "tools": {
-    "windows": [
-      { "name": "MinGW", "tool": "tools_mingw1310", "variant": "qt.tools.win64_mingw1310", "version": "13.1.0", "bin": "Tools/mingw1310_64/bin",
-        "comment": "Qt's MinGW binaries are ABI-matched to this compiler. Mixing versions gives crashes that look like application bugs." },
-      { "name": "CMake", "tool": "tools_cmake", "variant": "qt.tools.cmake", "version": "3.30.5", "bin": "Tools/CMake_64/bin" },
-      { "name": "Ninja", "tool": "tools_ninja", "variant": "qt.tools.ninja", "version": "1.12.1", "bin": "Tools/Ninja" }
-    ],
-    "linux": [
-      { "name": "CMake", "tool": "tools_cmake", "variant": "qt.tools.cmake", "version": "3.30.5", "bin": "Tools/CMake/bin" },
-      { "name": "Ninja", "tool": "tools_ninja", "variant": "qt.tools.ninja", "version": "1.12.1", "bin": "Tools/Ninja" }
-    ]
-  },
-  "downloads": {
-    "comment": "Tools that don't come from Qt's repositories: downloaded from their publisher, checked against the SHA-256 here, unpacked under <prefix>/tools/<name>.",
-    "windows": [
-      { "name": "NSIS", "version": "3.13", "bin": "nsis-3.13",
-        "url": "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip",
-        "sha256": "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8",
-        "comment": "Makes QGLogger's Windows installer (CPack's NSIS generator). The portable zip: no installer, no admin rights. SHA-256 taken from the download, which matched the SHA-1 SourceForge publishes for it." }
-    ]
+  "profiles": {
+    "logger": {
+      "description": "QSO Graph Logger: Qt, the compiler, CMake and Ninja, and NSIS for the Windows installer",
+      "qt": {
+        "version": "6.12.0",
+        "floor": "6.11",
+        "windows": {
+          "host": "windows",
+          "target": "desktop",
+          "arch": "win64_mingw",
+          "directory": "mingw_64"
+        },
+        "linux": {
+          "host": "linux",
+          "target": "desktop",
+          "arch": "linux_gcc_64",
+          "directory": "gcc_64",
+          "comment": "Built with GCC; the compiler is the system's (any GCC with C++17), with the OpenGL, EGL and xkbcommon headers Qt's CMake files look for. The bootstrap checks for them; QGSDK never installs system packages.",
+          "machine": "x86_64"
+        },
+        "macos": {
+          "host": "mac",
+          "target": "desktop",
+          "arch": "clang_64",
+          "directory": "macos",
+          "comment": "A universal build (Apple silicon and Intel). The compiler is Apple's clang from the Xcode command-line tools, which the bootstrap checks for and never installs."
+        }
+      },
+      "tools": {
+        "windows": [
+          {
+            "name": "MinGW",
+            "tool": "tools_mingw1310",
+            "variant": "qt.tools.win64_mingw1310",
+            "version": "13.1.0",
+            "bin": "Tools/mingw1310_64/bin",
+            "comment": "Qt's MinGW binaries are ABI-matched to this compiler. Mixing versions gives crashes that look like application bugs."
+          },
+          {
+            "name": "CMake",
+            "tool": "tools_cmake",
+            "variant": "qt.tools.cmake",
+            "version": "3.30.5",
+            "bin": "Tools/CMake_64/bin"
+          },
+          {
+            "name": "Ninja",
+            "tool": "tools_ninja",
+            "variant": "qt.tools.ninja",
+            "version": "1.12.1",
+            "bin": "Tools/Ninja"
+          }
+        ],
+        "linux": [
+          {
+            "name": "CMake",
+            "tool": "tools_cmake",
+            "variant": "qt.tools.cmake",
+            "version": "3.30.5",
+            "bin": "Tools/CMake/bin"
+          },
+          {
+            "name": "Ninja",
+            "tool": "tools_ninja",
+            "variant": "qt.tools.ninja",
+            "version": "1.12.1",
+            "bin": "Tools/Ninja"
+          }
+        ],
+        "macos": [
+          {
+            "name": "CMake",
+            "tool": "tools_cmake",
+            "variant": "qt.tools.cmake",
+            "version": "3.30.5",
+            "bin": "Tools/CMake/CMake.app/Contents/bin"
+          },
+          {
+            "name": "Ninja",
+            "tool": "tools_ninja",
+            "variant": "qt.tools.ninja",
+            "version": "1.12.1",
+            "bin": "Tools/Ninja"
+          }
+        ]
+      },
+      "downloads": {
+        "comment": "Tools that don't come from Qt's repositories: downloaded from their publisher, checked against the SHA-256 here, unpacked under <prefix>/tools/<name>.",
+        "windows": [
+          {
+            "name": "NSIS",
+            "version": "3.13",
+            "bin": "nsis-3.13",
+            "url": "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip",
+            "sha256": "ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8",
+            "comment": "Makes QGLogger's Windows installer (CPack's NSIS generator). The portable zip: no installer, no admin rights. SHA-256 taken from the download, which matched the SHA-1 SourceForge publishes for it."
+          }
+        ]
+      }
+    },
+    "mcp": {
+      "description": "qso-graph's MCP servers: uv, the Python versions they test against, and git",
+      "python_versions": [
+        "3.11",
+        "3.12",
+        "3.13"
+      ],
+      "python_versions_comment": "Installed by uv into the prefix (UV_PYTHON_INSTALL_DIR): the versions the servers' CI tests. Which patch release each one is follows from the pinned uv. No 3.10: it reaches end of life in October 2026, and its Windows build carries OpenSSL 1.1.1 (qso-graph/.github#39).",
+      "downloads": {
+        "comment": "Downloaded from the publisher, checked against the SHA-256 here, unpacked under <prefix>/tools/<name>. An entry with \"machine\" applies only on that machine (uname -m: arm64, x86_64). On Linux and macOS git comes from the system (the Xcode command-line tools on macOS).",
+        "windows": [
+          {
+            "name": "uv",
+            "version": "0.13.5",
+            "bin": ".",
+            "url": "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-x86_64-pc-windows-msvc.zip",
+            "sha256": "a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a"
+          },
+          {
+            "name": "MinGit",
+            "version": "2.56.0.4",
+            "bin": "cmd",
+            "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip",
+            "sha256": "e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877",
+            "comment": "Git for Windows' portable build: no installer, no admin rights."
+          }
+        ],
+        "linux": [
+          {
+            "name": "uv",
+            "version": "0.13.5",
+            "bin": "uv-x86_64-unknown-linux-gnu",
+            "machine": "x86_64",
+            "url": "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-x86_64-unknown-linux-gnu.tar.gz",
+            "sha256": "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f"
+          },
+          {
+            "name": "uv",
+            "version": "0.13.5",
+            "bin": "uv-aarch64-unknown-linux-gnu",
+            "machine": "arm64",
+            "url": "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-aarch64-unknown-linux-gnu.tar.gz",
+            "sha256": "4bb69cf95ed13f23713bb7bc09f241896ea0c75b7c557e615a20604b82f9c403"
+          }
+        ],
+        "macos": [
+          {
+            "name": "uv",
+            "version": "0.13.5",
+            "bin": "uv-aarch64-apple-darwin",
+            "machine": "arm64",
+            "url": "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-aarch64-apple-darwin.tar.gz",
+            "sha256": "743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73"
+          },
+          {
+            "name": "uv",
+            "version": "0.13.5",
+            "bin": "uv-x86_64-apple-darwin",
+            "machine": "x86_64",
+            "url": "https://github.com/astral-sh/uv/releases/download/0.13.5/uv-x86_64-apple-darwin.tar.gz",
+            "sha256": "b0f52b0e3945b4107d89024ea38e625683011fbfc05a0d98f9fa2d6dcee28c66"
+          }
+        ]
+      }
+    },
+    "desktop": {
+      "description": "QSO Graph Desktop: Node.js, Rust, and Go and CMake for the credential core's FIPS crypto module",
+      "rust": "1.99.1",
+      "rust_comment": "The version QSO Graph Desktop's rust-toolchain.toml pins; tests/check.sh fails if they differ. Installed with rustup into the prefix (RUSTUP_HOME, CARGO_HOME).",
+      "node_comment": "Node.js is the version QSO Graph Desktop's .node-version names; tests/check.sh fails if they differ.",
+      "downloads": {
+        "comment": "From the publishers, each checked against the SHA-256 here (published by Node.js, Go, Kitware, the Rust project, GitHub's asset digests for Ninja and LLVM; NASM publishes none, so its was taken from the download). Windows also needs Microsoft's C++ Build Tools, which need an administrator: the bootstrap checks for them and names Microsoft's own installer, never ours. On Linux and macOS the C compiler, make and git come from the system (the Xcode command-line tools on macOS).",
+        "windows": [
+          {
+            "name": "Node.js",
+            "version": "26.9.0",
+            "bin": "node-v26.9.0-win-x64",
+            "url": "https://nodejs.org/dist/v26.9.0/node-v26.9.0-win-x64.zip",
+            "sha256": "c8af870b5b3e9789a6cbdb30270e7c212e12d76a7afa7fc7f21b6b21cc22a71b"
+          },
+          {
+            "name": "rustup-init",
+            "version": "1.29.2",
+            "bin": ".",
+            "url": "https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-pc-windows-msvc/rustup-init.exe",
+            "sha256": "00f139da614dced87d3c3d4121c43eebdac3c1bf8a5ee86b9d80dfd71c8d70fd"
+          },
+          {
+            "name": "Go",
+            "version": "1.27.3",
+            "bin": "go/bin",
+            "url": "https://go.dev/dl/go1.27.3.windows-amd64.zip",
+            "sha256": "f26081f438319757f8a1b46d7d0b2c5ec7583d4038e485e0aa725cfde7885fff"
+          },
+          {
+            "name": "CMake",
+            "version": "4.4.4",
+            "bin": "cmake-4.4.4-windows-x86_64/bin",
+            "url": "https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-windows-x86_64.zip",
+            "sha256": "bace36e94b31c68ab6fa295f26dfa11219e0701cf7c94b0284a7d1cb13dac536"
+          },
+          {
+            "name": "Ninja",
+            "version": "1.13.2",
+            "bin": ".",
+            "url": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
+            "sha256": "07fc8261b42b20e71d1720b39068c2e14ffcee6396b76fb7a795fb460b78dc65"
+          },
+          {
+            "name": "NASM",
+            "version": "3.02",
+            "bin": "nasm-3.02",
+            "url": "https://www.nasm.us/pub/nasm/releasebuilds/3.02/win64/nasm-3.02-win64.zip",
+            "sha256": "161d0bfaff53c2f9e9f3e69fd0672323ebabafd1268976a5cec11be92a19aee7"
+          },
+          {
+            "name": "libclang",
+            "version": "23.1.4",
+            "bin": "clang+llvm-23.1.4-x86_64-pc-windows-msvc/bin",
+            "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.4/clang+llvm-23.1.4-x86_64-pc-windows-msvc.tar.xz",
+            "sha256": "854bffcfc84528e0ee92490ff5c178920abd358a79c3e98f053e41e3e8e4c6d2",
+            "members": [
+              "*/bin/libclang.dll",
+              "*/lib/clang/*/include/*"
+            ],
+            "env": {
+              "LIBCLANG_PATH": "clang+llvm-23.1.4-x86_64-pc-windows-msvc/bin"
+            },
+            "comment": "bindgen, which the FIPS module needs on Windows, loads libclang. From LLVM's official release (900 MB); only libclang.dll and clang's own headers are unpacked."
+          },
+          {
+            "name": "MinGit",
+            "version": "2.56.0.4",
+            "bin": "cmd",
+            "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip",
+            "sha256": "e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877"
+          }
+        ],
+        "linux": [
+          {
+            "name": "Node.js",
+            "version": "26.9.0",
+            "bin": "node-v26.9.0-linux-x64/bin",
+            "machine": "x86_64",
+            "url": "https://nodejs.org/dist/v26.9.0/node-v26.9.0-linux-x64.tar.gz",
+            "sha256": "03d9104fc4f19652e74480fed11c023d75981464b7292f21a601c3f95ce7d90d"
+          },
+          {
+            "name": "Node.js",
+            "version": "26.9.0",
+            "bin": "node-v26.9.0-linux-arm64/bin",
+            "machine": "arm64",
+            "url": "https://nodejs.org/dist/v26.9.0/node-v26.9.0-linux-arm64.tar.gz",
+            "sha256": "d5077591aa38b48d90bf9b3ac10da8d2f40dce289b20294913c58c19f153eb12"
+          },
+          {
+            "name": "rustup-init",
+            "version": "1.29.2",
+            "bin": ".",
+            "machine": "x86_64",
+            "url": "https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-unknown-linux-gnu/rustup-init",
+            "sha256": "5be191e8c70a5007074254cb74d78dbfdd25cd5a61c27de7b8e5410122ec24f4"
+          },
+          {
+            "name": "rustup-init",
+            "version": "1.29.2",
+            "bin": ".",
+            "machine": "arm64",
+            "url": "https://static.rust-lang.org/rustup/archive/1.29.2/aarch64-unknown-linux-gnu/rustup-init",
+            "sha256": "a9c168dbea81a84671c6b7a5c1795cb0eb699020110d107ddfca427bd797e697"
+          },
+          {
+            "name": "Go",
+            "version": "1.27.3",
+            "bin": "go/bin",
+            "machine": "x86_64",
+            "url": "https://go.dev/dl/go1.27.3.linux-amd64.tar.gz",
+            "sha256": "65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40"
+          },
+          {
+            "name": "Go",
+            "version": "1.27.3",
+            "bin": "go/bin",
+            "machine": "arm64",
+            "url": "https://go.dev/dl/go1.27.3.linux-arm64.tar.gz",
+            "sha256": "a06e99309dbcbdca1a8ccd2282c3ee146e55930886e26b4f1193269587165f49"
+          },
+          {
+            "name": "CMake",
+            "version": "4.4.4",
+            "bin": "cmake-4.4.4-linux-x86_64/bin",
+            "machine": "x86_64",
+            "url": "https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-linux-x86_64.tar.gz",
+            "sha256": "e5bb807f7728cb60cd8b27ebc97a2edb469b68655f21e844a600c3575b76f5bb"
+          },
+          {
+            "name": "CMake",
+            "version": "4.4.4",
+            "bin": "cmake-4.4.4-linux-aarch64/bin",
+            "machine": "arm64",
+            "url": "https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-linux-aarch64.tar.gz",
+            "sha256": "a1b6cc63636a0e55c63257cf3315a8a5f129e42fade25db1afea4ff8ab06f25e"
+          }
+        ],
+        "macos": [
+          {
+            "name": "Node.js",
+            "version": "26.9.0",
+            "bin": "node-v26.9.0-darwin-arm64/bin",
+            "machine": "arm64",
+            "url": "https://nodejs.org/dist/v26.9.0/node-v26.9.0-darwin-arm64.tar.gz",
+            "sha256": "6f3de7ed853ee283b4bf24b6e426618f1d357401ce5815db1866eb85eb4b05d9"
+          },
+          {
+            "name": "Node.js",
+            "version": "26.9.0",
+            "bin": "node-v26.9.0-darwin-x64/bin",
+            "machine": "x86_64",
+            "url": "https://nodejs.org/dist/v26.9.0/node-v26.9.0-darwin-x64.tar.gz",
+            "sha256": "06b2e742ed9025dc84adc830243b3f731956eac9c321bccd0ede384209af02a8"
+          },
+          {
+            "name": "rustup-init",
+            "version": "1.29.2",
+            "bin": ".",
+            "machine": "arm64",
+            "url": "https://static.rust-lang.org/rustup/archive/1.29.2/aarch64-apple-darwin/rustup-init",
+            "sha256": "f7c7e11eb2e07f006e532a8aaac77b32f4527d305ac386c0c633ca6133d35ca9"
+          },
+          {
+            "name": "rustup-init",
+            "version": "1.29.2",
+            "bin": ".",
+            "machine": "x86_64",
+            "url": "https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-apple-darwin/rustup-init",
+            "sha256": "b9610730ddeef52765723847866fd1e3540b2bf7d5ab0c324aa143a5edf25ba0"
+          },
+          {
+            "name": "Go",
+            "version": "1.27.3",
+            "bin": "go/bin",
+            "machine": "arm64",
+            "url": "https://go.dev/dl/go1.27.3.darwin-arm64.tar.gz",
+            "sha256": "dd3908cf20959d798c1e06ebe5b72213f0505ce01373b40ce3110975a6cd99c2"
+          },
+          {
+            "name": "Go",
+            "version": "1.27.3",
+            "bin": "go/bin",
+            "machine": "x86_64",
+            "url": "https://go.dev/dl/go1.27.3.darwin-amd64.tar.gz",
+            "sha256": "b6f8e931e4ab497fcde6da8ae4499a58f9d258e55c8a80824a516eae5950a750"
+          },
+          {
+            "name": "CMake",
+            "version": "4.4.4",
+            "bin": "cmake-4.4.4-macos-universal/CMake.app/Contents/bin",
+            "url": "https://github.com/Kitware/CMake/releases/download/v4.4.4/cmake-4.4.4-macos-universal.tar.gz",
+            "sha256": "4b7b73704b1db9b374e5c9ab8e17ac6148b817b6396ee75cd94a852cbac9d305"
+          }
+        ]
+      }
+    }
   }
 }
