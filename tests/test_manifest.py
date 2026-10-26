@@ -79,7 +79,7 @@ def test_logger_on_macos_is_one_universal_qt_for_both_machines():
 def test_mcp_is_uv_and_its_pythons_with_git_on_windows():
     assert [d.name for d in mcp("windows").downloads] == ["uv", "MinGit"]
     assert [d.name for d in mcp("linux").downloads] == ["uv"]  # git from the system
-    assert mcp("windows").python_versions == ("3.10", "3.11", "3.12", "3.13")
+    assert mcp("windows").python_versions == ("3.11", "3.12", "3.13")
     assert mcp("windows").qt is None
 
 
@@ -152,7 +152,7 @@ def test_uv_installs_its_pythons_after_uv_itself(tmp_path):
     keys = [c.key for c in components(tmp_path, [mcp("macos", "arm64")])]
     assert keys == ["download:uv", "uv-python"]
     command = components(tmp_path, [mcp("macos", "arm64")])[-1].command
-    assert command == [str(tmp_path / "tools/uv/uv-aarch64-apple-darwin/uv"), "python", "install", "3.10", "3.11", "3.12", "3.13"]
+    assert command == [str(tmp_path / "tools/uv/uv-aarch64-apple-darwin/uv"), "python", "install", "3.11", "3.12", "3.13"]
 
 
 def _serve(monkeypatch, payload):

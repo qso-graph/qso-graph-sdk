@@ -6,7 +6,7 @@ supports Windows, Linux and macOS. The first two:
 - **`logger`**: QSO Graph Logger. Qt and its tools, as QGSDK installed them from the start. The logger is
   a grid-heavy application (SOTA, POTA, DX, nets): dense tables, keyboard speed, a lot on screen at once.
   That is what Qt is good at and Electron is not, so the logger stays Qt, and so does this profile.
-- **`mcp`**: qso-graph's MCP servers. uv, and the Pythons their CI tests against (3.10 to 3.13), installed
+- **`mcp`**: qso-graph's MCP servers. uv, and the Pythons their CI tests against (3.11 to 3.13), installed
   by uv into the prefix; git where the system has none (MinGit on Windows).
 
 A QSO Graph Desktop profile follows (#4).

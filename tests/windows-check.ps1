@@ -79,7 +79,7 @@ try {
         Write-Host "== 5. uv, the MCP servers' Pythons, and git"
         $Uv = (Get-Command uv).Source
         if (-not $Uv.StartsWith($Prefix)) { throw "uv is not the prefix's: $Uv" }
-        foreach ($v in "3.10", "3.11", "3.12", "3.13") {
+        foreach ($v in "3.11", "3.12", "3.13") {
             $Found = (& uv python find --managed-python $v)
             if ($LASTEXITCODE -ne 0) { throw "uv has no Python $v" }
             if (-not $Found.StartsWith($Prefix)) { throw "Python $v is not the prefix's: $Found" }

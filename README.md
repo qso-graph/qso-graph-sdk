@@ -9,7 +9,7 @@ amateur-radio tools; sister to JTSDK (WSJT-X) and FLSDK (fldigi).
 | Profile | For | Installs |
 |---|---|---|
 | `logger` | QSO Graph Logger, the Qt application | Qt, its compiler, CMake, Ninja; NSIS on Windows for the installer |
-| `mcp` | qso-graph's MCP servers | uv, and the Pythons the servers test against (3.10 to 3.13); git on Windows |
+| `mcp` | qso-graph's MCP servers | uv, and the Pythons the servers test against (3.11 to 3.13); git on Windows |
 
 Install one or several; run the installer again with another profile to add it. A QSO Graph Desktop
 profile is planned ([#4](https://github.com/qso-graph/qso-graph-sdk/issues/4)).
@@ -32,7 +32,7 @@ QGSDK is the tooling; an application is compiled and packaged from its own check
 | NSIS | 3.13 | ✓ | | | the Windows installer |
 | **mcp** | | | | | |
 | uv | 0.13.5 | ✓ | ✓ | ✓ | the servers' environments, tests and builds |
-| Python | 3.10 to 3.13 | ✓ | ✓ | ✓ | installed by uv, inside the prefix |
+| Python | 3.11 to 3.13 | ✓ | ✓ | ✓ | installed by uv, inside the prefix |
 | git | | MinGit 2.56.0 | the system's | the Xcode command-line tools' | |
 | **every profile** | | | | | |
 | Python | 3.13.16 | ✓ | ✓ | ✓ | QGSDK's own scripts only; never part of an application |

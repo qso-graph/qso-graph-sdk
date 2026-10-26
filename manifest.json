@@ -128,12 +128,11 @@
     "mcp": {
       "description": "qso-graph's MCP servers: uv, the Python versions they test against, and git",
       "python_versions": [
-        "3.10",
         "3.11",
         "3.12",
         "3.13"
       ],
-      "python_versions_comment": "Installed by uv into the prefix (UV_PYTHON_INSTALL_DIR): the versions the servers' CI tests. Which patch release each one is follows from the pinned uv.",
+      "python_versions_comment": "Installed by uv into the prefix (UV_PYTHON_INSTALL_DIR): the versions the servers' CI tests. Which patch release each one is follows from the pinned uv. No 3.10: it reaches end of life in October 2026, and its Windows build carries OpenSSL 1.1.1 (qso-graph/.github#39).",
       "downloads": {
         "comment": "Downloaded from the publisher, checked against the SHA-256 here, unpacked under <prefix>/tools/<name>. An entry with \"machine\" applies only on that machine (uname -m: arm64, x86_64). On Linux and macOS git comes from the system (the Xcode command-line tools on macOS).",
         "windows": [

@@ -67,7 +67,7 @@ if has mcp; then
         # shellcheck disable=SC1091
         . "$prefix/qgsdk-env.sh"
         case "$(command -v uv)" in "$prefix"/*) ;; *) echo "uv is not the prefix's: $(command -v uv)"; exit 1 ;; esac
-        for v in 3.10 3.11 3.12 3.13; do
+        for v in 3.11 3.12 3.13; do
             found="$(uv python find --managed-python "$v")" || { echo "uv has no Python $v"; exit 1; }
             case "$found" in "$prefix"/*) ;; *) echo "Python $v is not the prefix's: $found"; exit 1 ;; esac
             "$found" -c 'import sys, ssl; print(sys.version.split()[0], ssl.OPENSSL_VERSION)'
