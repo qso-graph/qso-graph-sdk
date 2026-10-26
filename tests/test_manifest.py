@@ -298,3 +298,34 @@ def test_a_single_program_is_kept_and_made_runnable(tmp_path, monkeypatch):
                                        hashlib.sha256(b"#!/bin/sh\n").hexdigest(), "."))
     program = tmp_path / "tools" / "rustup-init" / "rustup-init"
     assert program.is_file() and os.access(program, os.X_OK)
+
+
+def test_rustup_inits_output_goes_to_a_log_and_a_failure_names_it(tmp_path, monkeypatch, capsys):
+    import sys
+
+    from qgsdk import provision
+    from qgsdk.provision import Component
+
+    def rust(code):
+        script = f"print('cargo:rerun-if-env-changed=CC'); raise SystemExit({code})"
+        return Component("rust", "Rust 1.99.1 (rustup 1.29.2)", tmp_path / "rust" / "cargo" / "bin", [sys.executable, "-c", script])
+
+    log = tmp_path / "rust" / "rustup-init.log"
+
+    def made(code):
+        def components(prefix, profiles):
+            return [rust(code)]
+        return components
+
+    monkeypatch.setattr(provision, "components", made(3))
+    with pytest.raises(SystemExit, match="rustup-init failed \\(exit 3\\)"):
+        provision.install(tmp_path, [desktop("linux")])
+    assert "cargo:rerun-if-env-changed" in log.read_text()
+
+    capsys.readouterr()
+    monkeypatch.setattr(provision, "components", made(0))
+    (tmp_path / "rust" / "cargo" / "bin").mkdir(parents=True)
+    provision.install(tmp_path, [desktop("linux")])
+    out = capsys.readouterr().out
+    assert "rerun-if-env-changed" not in out  # the noise stays in the log
+    assert "rustup-init (its output:" in out

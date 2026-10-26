@@ -160,6 +160,17 @@ def install(prefix: Path, profiles: list[Profile], force: bool = False) -> None:
             continue
         if component.download:
             fetch(prefix, component.download)
+        elif component.key == "rust":
+            # rustup-init's output is a page of its own advice (add cargo to PATH, which QGSDK's
+            # environment does) and compiler-detection debug lines: kept in a log, shown on failure.
+            log = rust_dir(prefix) / "rustup-init.log"
+            log.parent.mkdir(parents=True, exist_ok=True)
+            print(f"+ {component.identity}: rustup-init (its output: {log})", flush=True)
+            with log.open("w", encoding="utf-8") as out:
+                done = subprocess.run(component.command, check=False, env=env, stdout=out, stderr=subprocess.STDOUT)
+            if done.returncode != 0:
+                print("".join(log.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)[-30:]), flush=True)
+                raise SystemExit(f"{component.identity}: rustup-init failed (exit {done.returncode}); its output is in {log}")
         else:
             print("+", " ".join(component.command[1:]), flush=True)
             subprocess.run(component.command, check=True, env=env)
