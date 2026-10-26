@@ -12,5 +12,5 @@ with its source, and the licence keeps it that way: whoever
 maintains them, they stay free software.
 
 What QGSDK downloads (Python, aqtinstall and its dependencies, Qt, MinGW, CMake, Ninja, NSIS, uv,
-MinGit, Node.js, Rust, Go, NASM, LLVM's libclang) is not part of this repository and is used under each project's own licence; the README lists
+MinGit, Node.js, Rust, Go, NASM, LLVM's libclang, Strawberry Perl) is not part of this repository and is used under each project's own licence; the README lists
 each one's.

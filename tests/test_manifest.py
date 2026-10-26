@@ -232,7 +232,9 @@ def test_desktop_on_every_platform_and_machine():
         names = [d.name for d in p.downloads]
         assert names[:4] == ["Node.js", "rustup-init", "Go", "CMake"]
         assert p.rust and p.qt is None
-    assert [d.name for d in desktop("windows").downloads][4:] == ["Ninja", "NASM", "libclang", "MinGit"]
+    assert [d.name for d in desktop("windows").downloads][4:] == ["Ninja", "NASM", "libclang", "Perl", "MinGit"]
+    perl = next(d for d in desktop("windows").downloads if d.name == "Perl")
+    assert perl.members == ("perl/*",), "only perl\\ is unpacked: never Strawberry's MinGW under c\\"
     assert [d.name for d in desktop("linux", "arm64").downloads] == ["Node.js", "rustup-init", "Go", "CMake"]
     assert all("arm64" in d.url or "aarch64" in d.url for d in desktop("linux", "arm64").downloads)
 

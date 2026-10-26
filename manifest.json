@@ -201,7 +201,7 @@
       "rust_comment": "The version QSO Graph Desktop's rust-toolchain.toml pins; tests/check.sh fails if they differ. Installed with rustup into the prefix (RUSTUP_HOME, CARGO_HOME).",
       "node_comment": "Node.js is the version QSO Graph Desktop's .node-version names; tests/check.sh fails if they differ.",
       "downloads": {
-        "comment": "From the publishers, each checked against the SHA-256 here (published by Node.js, Go, Kitware, the Rust project, GitHub's asset digests for Ninja and LLVM; NASM publishes none, so its was taken from the download). Windows also needs Microsoft's C++ Build Tools, which need an administrator: the bootstrap checks for them and names Microsoft's own installer, never ours. On Linux and macOS the C compiler, make and git come from the system (the Xcode command-line tools on macOS).",
+        "comment": "From the publishers, each checked against the SHA-256 here (published by Node.js, Go, Kitware, the Rust project, GitHub's asset digests for Ninja and LLVM; NASM publishes none, so its was taken from the download). Windows also needs Perl (Strawberry's portable build) and Microsoft's C++ Build Tools, which need an administrator: the bootstrap checks for them and names Microsoft's own installer, never ours. On Linux and macOS the C compiler, make and git come from the system (the Xcode command-line tools on macOS).",
         "windows": [
           {
             "name": "Node.js",
@@ -259,6 +259,17 @@
               "LIBCLANG_PATH": "clang+llvm-23.1.4-x86_64-pc-windows-msvc/bin"
             },
             "comment": "bindgen, which the FIPS module needs on Windows, loads libclang. From LLVM's official release (900 MB); only libclang.dll and clang's own headers are unpacked."
+          },
+          {
+            "name": "Perl",
+            "version": "5.42.3.1",
+            "bin": "perl/bin",
+            "url": "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54231_64bit/strawberry-perl-5.42.3.1-64bit-portable.zip",
+            "sha256": "6a081a811781c30aca51dbc036afd93092af91e3297901f02c17043795a10690",
+            "members": [
+              "perl/*"
+            ],
+            "comment": "AWS-LC's FIPS build runs Perl on Windows (its CMake requires it). Strawberry Perl's portable build, from its GitHub release (GitHub's asset digest). Only perl\\ is unpacked: the zip also carries a MinGW toolchain under c\\, which must not come before Microsoft's compiler. GitHub's Windows runners have Strawberry Perl preinstalled, which hid this until a clean Windows build (2026-10-26)."
           },
           {
             "name": "MinGit",
