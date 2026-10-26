@@ -67,7 +67,9 @@ missing, prints the one command:
 winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 ```
 
-1. Get QGSDK: clone this repository, or download it as a zip and unpack it.
+1. Get QGSDK: download the latest release's `.zip` from
+   [Releases](https://github.com/qso-graph/qso-graph-sdk/releases/latest), check it
+   ([Verify your download](#verify-your-download)) and unpack it; or clone this repository.
 2. Install the tools for your profiles (once; the logger is about 2 GB and a few minutes):
 
    ```powershell
@@ -110,7 +112,9 @@ should work.
    (`build-essential git unzip libatomic1` on Debian); the `mcp` profile alone needs only `git`, `curl`
    and `tar`. The installer checks for everything its profiles need and prints the line for you if
    anything is missing.
-2. Get QGSDK: clone this repository, or download and unpack it.
+2. Get QGSDK: download the latest release's `.tar.gz` from
+   [Releases](https://github.com/qso-graph/qso-graph-sdk/releases/latest), check it
+   ([Verify your download](#verify-your-download)) and unpack it; or clone this repository.
 3. Install the tools for your profiles (once; the logger is about 2 GB, under a minute on a fast line).
    No root:
 
@@ -136,7 +140,9 @@ macOS 14 or newer, Apple silicon or Intel.
    xcode-select --install
    ```
 
-2. Get QGSDK: clone this repository, or download and unpack it.
+2. Get QGSDK: download the latest release's `.tar.gz` from
+   [Releases](https://github.com/qso-graph/qso-graph-sdk/releases/latest), check it
+   ([Verify your download](#verify-your-download)) and unpack it; or clone this repository.
 3. Install the tools for your profiles (once). No root:
 
    ```sh
@@ -152,6 +158,26 @@ macOS 14 or newer, Apple silicon or Intel.
    ```
 
 5. Work in the application's checkout, as on Windows.
+
+## Verify your download
+
+Each release carries `SHA256SUMS`, and GitHub's signed record that this repository's Release workflow
+made every file. In the folder you downloaded to:
+
+```powershell
+(Get-FileHash qgsdk-0.1.0.zip -Algorithm SHA256).Hash    # Windows: compare with SHA256SUMS
+```
+
+```sh
+sha256sum -c SHA256SUMS --ignore-missing                 # Linux
+shasum -a 256 -c SHA256SUMS --ignore-missing             # macOS
+```
+
+With the [GitHub CLI](https://cli.github.com/), on any platform, this checks who made it:
+
+```sh
+gh attestation verify qgsdk-0.1.0.zip -R qso-graph/qso-graph-sdk
+```
 
 ## Checking it works
 

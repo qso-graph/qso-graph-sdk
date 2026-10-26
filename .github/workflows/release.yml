@@ -1,0 +1,146 @@
+# Release (#15): the only way QGSDK is published. Run by hand when KI7MT says so: Actions → Release →
+# Run workflow, from main, with the version. Merging into main publishes nothing.
+#
+# It refuses unless every check holds: run from main, pyproject.toml says this version, CHANGELOG.md has
+# its section, its tag is free, its milestone has no open issue, and CI's run of this very commit is
+# all green, with the install check passed on every platform. Then it makes the archives from that
+# commit, with SHA256SUMS and GitHub's signed provenance; publishes them as a draft; downloads them back
+# and checks them; and only then makes the release public, which creates the tag. The tag is an output
+# of a release, never its trigger. Last, the milestone is closed.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to release, such as 0.1.0: main must already say it'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: ready to release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read  # CI's run of this commit
+      issues: read   # the milestone
+    outputs:
+      milestone: ${{ steps.ready.outputs.milestone }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - id: ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}  # through env, never ${{ }} inside the script
+        run: |
+          set -uo pipefail
+          problems=0
+          fail() { echo "✗ $*" >&2; problems=$((problems + 1)); }
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "✗ '${VERSION}' is not a version (x.y.z)" >&2; exit 1
+          fi
+          [ "$GITHUB_REF" = refs/heads/main ] && echo "✓ run from main" || fail "run from ${GITHUB_REF}, not main"
+          said=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+          [ "$said" = "$VERSION" ] && echo "✓ pyproject.toml says ${VERSION}" || fail "pyproject.toml says ${said}, not ${VERSION}"
+          grep -q "^## \[${VERSION}\] - [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}$" CHANGELOG.md \
+            && echo "✓ CHANGELOG.md has ${VERSION}'s section" || fail "CHANGELOG.md has no '## [${VERSION}] - <date>' section"
+          if gh api "repos/${REPO}/git/ref/tags/v${VERSION}" >/dev/null 2>&1; then
+            fail "tag v${VERSION} already exists"
+          else
+            echo "✓ tag v${VERSION} is free"
+          fi
+          milestone=$(gh api --paginate "repos/${REPO}/milestones?state=all&per_page=100" \
+            --jq ".[] | select(.title == \"${VERSION}\") | \"\(.number) \(.open_issues)\"")
+          if [ -z "$milestone" ]; then
+            fail "there is no milestone ${VERSION}"
+          else
+            read -r number open <<< "$milestone"
+            [ "$open" = 0 ] && echo "✓ milestone ${VERSION} has no open issue" || fail "milestone ${VERSION} has ${open} open issue(s)"
+            echo "milestone=${number}" >> "$GITHUB_OUTPUT"
+          fi
+          # CI's push run of this exact commit: ci-all-green, and the install check on all five
+          # platforms (a push to main always runs it). The latest attempt of each job counts.
+          run=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?event=push&branch=main&head_sha=${GITHUB_SHA}&per_page=5" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")][0].id // empty')
+          if [ -z "$run" ]; then
+            fail "CI has no successful run of ${GITHUB_SHA} on main: wait for it"
+          else
+            passed=$(gh api --paginate "repos/${REPO}/actions/runs/${run}/jobs?filter=all&per_page=100" --jq '.jobs[]' \
+              | jq -s '[group_by(.name)[] | max_by(.run_attempt) | select(.conclusion == "success") | .name]
+                       | map(select(. == "ci-all-green" or startswith("install ("))) | length')
+            [ "$passed" = 6 ] && echo "✓ CI is all green on ${GITHUB_SHA}, installed on every platform (run ${run})" \
+              || fail "CI run ${run} passed ${passed} of 6: ci-all-green and the install check on five platforms"
+          fi
+          if [ "$problems" -gt 0 ]; then echo "Not released: ${problems} check(s) failed." >&2; exit 1; fi
+
+  publish:
+    name: publish v${{ inputs.version }}
+    needs: [checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write      # the release, and with it the tag
+      issues: write        # closing the milestone
+      id-token: write      # signing the provenance
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: The archives, from this commit
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir release
+          git archive --format=zip --prefix="qgsdk-${VERSION}/" -o "release/qgsdk-${VERSION}.zip" "$GITHUB_SHA"
+          git archive --format=tar.gz --prefix="qgsdk-${VERSION}/" -o "release/qgsdk-${VERSION}.tar.gz" "$GITHUB_SHA"
+          (cd release && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release/*
+      - name: Publish as a draft, check it, then make it public
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # CHANGELOG.md's section for this version, without its heading.
+          awk -v v="## [${VERSION}]" 'index($0, v) == 1 { on = 1; next } /^## \[/ { on = 0 } on' CHANGELOG.md > notes.md
+          {
+            echo
+            echo "---"
+            echo
+            echo "Unpack either archive and follow the README's setup for your platform. Check a download against **SHA256SUMS**; every file here was made by this repository's Release workflow, and GitHub signs that it was: \`gh attestation verify <file> -R ${REPO}\`."
+          } >> notes.md
+          # A draft has no tag yet: the tag is created only when it is made public, below.
+          gh release create "v${VERSION}" --repo "$REPO" --draft --target "$GITHUB_SHA" \
+            --title "QGSDK ${VERSION}" --notes-file notes.md -- release/*
+          mkdir check
+          gh release download "v${VERSION}" --repo "$REPO" --dir check
+          (cd check && sha256sum -c SHA256SUMS)
+          for file in check/*; do
+            gh attestation verify "$file" -R "$REPO" --signer-workflow "${REPO}/.github/workflows/release.yml" >/dev/null
+            echo "✓ $(basename "$file") carries this workflow's provenance"
+          done
+          gh release edit "v${VERSION}" --repo "$REPO" --draft=false --latest
+          gh release view "v${VERSION}" --repo "$REPO" --json tagName,isDraft,assets \
+            -q '"\(.tagName) draft=\(.isDraft), \(.assets | length) files"'
+      - name: Close the milestone
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MILESTONE: ${{ needs.checks.outputs.milestone }}
+        run: |
+          gh api -X PATCH "repos/${REPO}/milestones/${MILESTONE}" -f state=closed --jq '"milestone \(.title): \(.state)"'
