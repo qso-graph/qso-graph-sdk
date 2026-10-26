@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
-"""Install Qt and its tools with aqtinstall, and the other tools manifest.json lists under "downloads",
-at the versions it pins.
+"""Install what the chosen profiles need, at the versions manifest.json pins: Qt and its tools with
+aqtinstall, the other tools listed under "downloads", and the Pythons uv installs.
 
 aqtinstall downloads from Qt's own repositories (no Qt account), checks every archive against Qt's
-published hashes, and unpacks into the prefix. A download (NSIS) comes from its publisher and is checked
-against the SHA-256 in the manifest before it is unpacked. Unattended; no admin rights.
+published hashes, and unpacks into the prefix. A download (NSIS, uv, MinGit) comes from its publisher and
+is checked against the SHA-256 in the manifest before it is unpacked. Unattended; no admin rights.
 
 Running it again installs only what is missing or has changed in the manifest: what was installed is
-recorded, component by component, in <prefix>/Qt/qgsdk-installed.json. A folder alone isn't proof (CMake
+recorded, component by component, in <prefix>/qgsdk-installed.json. A folder alone isn't proof (CMake
 installs into the same folder whatever its version), so a component is skipped only when its record
 matches the manifest and its files are there. `force` reinstalls everything.
 """
@@ -21,47 +21,62 @@ import shutil
 import ssl
 import subprocess
 import sys
+import tarfile
 import urllib.request
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from .layout import download_dir, qt_dir, qt_root
-from .manifest import Download, Manifest, Platform
+from .layout import build_environment, download_dir, qt_dir, qt_root, uv_dir
+from .manifest import Download, Profile
 
 RECORD = "qgsdk-installed.json"
 
 
 @dataclass(frozen=True)
 class Component:
-    key: str        # "qt", or the tool name: "tools_cmake"
+    key: str        # "qt", the tool name ("tools_cmake"), "download:<name>", or "uv-python"
     identity: str   # what the manifest pins for it: "6.12.0 win64_mingw", "qt.tools.cmake 3.30.5"
     path: Path      # the folder that must exist once it's installed
-    command: list[str]              # the aqtinstall command that installs it (empty for a download)
+    command: list[str]              # the command that installs it (empty for a download)
     download: Download | None = None
 
 
-def components(prefix: Path, manifest: Manifest, platform: Platform) -> list[Component]:
-    """Qt, then each tool, with the aqtinstall command that installs it."""
+def components(prefix: Path, profiles: list[Profile]) -> list[Component]:
+    """Everything the profiles install, in order and once each: Qt, then each Qt tool, then the downloads,
+    then the Pythons uv installs (uv must be there first)."""
     out = str(qt_root(prefix))
     aqt = [sys.executable, "-m", "aqt"]
-    items = [Component(
-        "qt", f"{manifest.qt_version} {platform.arch}", qt_dir(prefix, manifest, platform),
-        aqt + ["install-qt", platform.host, platform.target, manifest.qt_version, platform.arch, "--outputdir", out],
-    )]
-    for tool in platform.tools:
-        items.append(Component(
-            tool.tool, f"{tool.variant} {tool.version}", qt_root(prefix) / tool.bin,
-            aqt + ["install-tool", platform.host, platform.target, tool.tool, tool.variant, "--outputdir", out],
-        ))
-    for d in platform.downloads:
-        items.append(Component(f"download:{d.name}", f"{d.name} {d.version}", download_dir(prefix, d.name) / d.bin, [], d))
-    return items
+    items: dict[str, Component] = {}
+    for p in profiles:
+        if p.qt:
+            q = p.qt
+            items.setdefault("qt", Component(
+                "qt", f"{q.version} {q.arch}", qt_dir(prefix, q),
+                aqt + ["install-qt", q.host, q.target, q.version, q.arch, "--outputdir", out],
+            ))
+            for tool in p.tools:
+                items.setdefault(tool.tool, Component(
+                    tool.tool, f"{tool.variant} {tool.version}", qt_root(prefix) / tool.bin,
+                    aqt + ["install-tool", q.host, q.target, tool.tool, tool.variant, "--outputdir", out],
+                ))
+        for d in p.downloads:
+            key = f"download:{d.name}"
+            items.setdefault(key, Component(key, f"{d.name} {d.version}", download_dir(prefix, d.name) / d.bin, [], d))
+    for p in profiles:
+        if p.python_versions:
+            uv = next(d for d in p.downloads if d.name == "uv")
+            exe = download_dir(prefix, uv.name) / uv.bin / ("uv.exe" if sys.platform == "win32" else "uv")
+            items.setdefault("uv-python", Component(
+                "uv-python", f"uv {uv.version}: Python {' '.join(p.python_versions)}", uv_dir(prefix) / "python",
+                [str(exe), "python", "install", *p.python_versions],
+            ))
+    return list(items.values())
 
 
-def aqt_commands(prefix: Path, manifest: Manifest, platform: Platform) -> list[list[str]]:
+def aqt_commands(prefix: Path, profiles: list[Profile]) -> list[list[str]]:
     """The aqtinstall commands, in order: Qt, then each tool."""
-    return [c.command for c in components(prefix, manifest, platform) if c.command]
+    return [c.command for c in components(prefix, profiles) if c.command[1:3] == ["-m", "aqt"]]
 
 
 def tls_context() -> ssl.SSLContext:
@@ -90,29 +105,36 @@ def fetch(prefix: Path, d: Download) -> None:
     target = download_dir(prefix, d.name)
     if target.exists():
         shutil.rmtree(target)
-    with zipfile.ZipFile(archive) as z:
-        z.extractall(target)
+    if archive.name.endswith(".zip"):
+        with zipfile.ZipFile(archive) as z:
+            z.extractall(target)
+    elif archive.name.endswith((".tar.gz", ".tgz")):
+        with tarfile.open(archive, "r:gz") as t:
+            t.extractall(target, filter="data")  # nothing outside the target, no device files
+    else:
+        raise SystemExit(f"{d.name}: don't know how to unpack {archive.name}")
 
 
 def read_record(prefix: Path) -> dict[str, str]:
     try:
-        return json.loads((qt_root(prefix) / RECORD).read_text(encoding="utf-8"))
+        return json.loads((prefix / RECORD).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
 
 
-def needed(prefix: Path, manifest: Manifest, platform: Platform, force: bool = False) -> list[Component]:
+def needed(prefix: Path, profiles: list[Profile], force: bool = False) -> list[Component]:
     """The components to install: all of them with `force`, otherwise those missing or changed."""
     record = read_record(prefix)
-    return [c for c in components(prefix, manifest, platform)
+    return [c for c in components(prefix, profiles)
             if force or record.get(c.key) != c.identity or not c.path.is_dir()]
 
 
-def install(prefix: Path, manifest: Manifest, platform: Platform, force: bool = False) -> None:
+def install(prefix: Path, profiles: list[Profile], force: bool = False) -> None:
     prefix.mkdir(parents=True, exist_ok=True)
-    todo = needed(prefix, manifest, platform, force)
+    todo = needed(prefix, profiles, force)
     record = read_record(prefix)
-    for component in components(prefix, manifest, platform):
+    env = build_environment(prefix, profiles)  # uv installs its Pythons into the prefix
+    for component in components(prefix, profiles):
         if component not in todo:
             print(f"= {component.identity}: already installed", flush=True)
             continue
@@ -120,9 +142,8 @@ def install(prefix: Path, manifest: Manifest, platform: Platform, force: bool = 
             fetch(prefix, component.download)
         else:
             print("+", " ".join(component.command[1:]), flush=True)
-            subprocess.run(component.command, check=True)
+            subprocess.run(component.command, check=True, env=env)
         if not component.path.is_dir():
             raise SystemExit(f"{component.identity} installed, but {component.path} is missing")
         record[component.key] = component.identity
-        qt_root(prefix).mkdir(parents=True, exist_ok=True)
-        (qt_root(prefix) / RECORD).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        (prefix / RECORD).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")

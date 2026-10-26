@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
-"""QGSDK: one command to a working Qt build environment for QGLogger, and thin wrappers over its CMake build.
+"""QGSDK: one command to the tools for the QSO Graph software you work on, chosen by profile (logger, mcp).
 
 The pieces:
-- manifest.py  reads manifest.json, the single list of pinned versions.
-- layout.py    where everything lives under the SDK's prefix, and the environment a build needs.
-- provision.py installs Qt and its tools with aqtinstall.
-- cli.py       the `qgsdk` command: install, env, build, doctor.
+- manifest.py  reads manifest.json, the single list of pinned versions, grouped by profile.
+- layout.py    where everything lives under the SDK's prefix, and the environment the profiles need.
+- provision.py installs Qt and its tools with aqtinstall, the other downloads, and uv's Pythons.
+- cli.py       the `qgsdk` command: profiles, select, install, env, build, doctor.
 """
 
 from importlib.metadata import PackageNotFoundError, version

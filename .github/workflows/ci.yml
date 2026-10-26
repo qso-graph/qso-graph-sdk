@@ -1,7 +1,7 @@
 # The same shape as the MCP fleet's CI, so every qso-graph repository answers the same questions:
 # lint and types, tests per Python, an audit of what ships, and one `ci-all-green` check for rulesets.
+# Then QGSDK's own question: does it install, from nothing, on every platform it supports? (`install`)
 # GitHub's own runners: a public repository must not run pull requests on a self-hosted machine.
-# Milestone 0 itself (a fresh Windows, end to end) is checked by following docs/m0.md on a clean machine.
 name: CI
 
 on:
@@ -68,9 +68,66 @@ jobs:
       - name: Development tools (uv.lock)
         run: uv run --with pip-audit pip-audit
 
+  # Whether a pull request touches what installs (the bootstrap, the manifest, the tooling, the checks).
+  # Everything else, and every push to main, weekly run and manual run, installs.
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      install: ${{ steps.plan.outputs.install }}
+    steps:
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PR" ]; then echo "install=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          files="$(gh api --paginate "repos/${REPO}/pulls/${PR}/files" --jq '.[].filename')"
+          echo "$files"
+          if grep -qE '^(bootstrap/|manifest\.json$|pyproject\.toml$|src/|tests/(check\.sh|windows-check\.ps1|fixture/)|\.github/workflows/ci\.yml$)' <<<"$files"; then
+            echo "install=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "install=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # From nothing to every profile working, on each platform, with tests/check.sh or windows-check.ps1.
+  # GitHub's runners are not clean machines (they carry compilers, git and Pythons of their own), so
+  # the checks also prove the tools found are the prefix's. A truly fresh machine is still checked by
+  # hand before a release (docs/m0.md).
+  install:
+    name: install (${{ matrix.os }})
+    needs: [plan]
+    if: ${{ needs.plan.outputs.install == 'true' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-15-intel]  # macos-latest is Apple silicon
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: What the Linux bootstrap asks the system for
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -q -y g++ libgl-dev libegl-dev libxkbcommon-dev libdbus-1-3 libfontconfig1 libfreetype6 libglib2.0-0 libwayland-cursor0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-util1 libxcb-xkb1 git
+      - name: tests/check.sh
+        if: runner.os != 'Windows'
+        run: tests/check.sh --prefix "$RUNNER_TEMP/qgsdk"
+      - name: tests/windows-check.ps1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\windows-check.ps1 -Prefix "$env:RUNNER_TEMP\qgsdk"
+
   ci-all-green:
     name: ci-all-green
-    needs: [lint, test, audit]
+    needs: [lint, test, audit, plan, install]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -80,9 +137,16 @@ jobs:
           LINT: ${{ needs.lint.result }}
           TEST: ${{ needs.test.result }}
           AUDIT: ${{ needs.audit.result }}
+          PLAN: ${{ needs.plan.result }}
+          INSTALL: ${{ needs.install.result }}
+          WANTED: ${{ needs.plan.outputs.install }}
         run: |
           fail=0
-          for j in "lint=$LINT" "test=$TEST" "audit=$AUDIT"; do
+          for j in "lint=$LINT" "test=$TEST" "audit=$AUDIT" "plan=$PLAN"; do
             [ "${j#*=}" = success ] || { echo "FAIL: ${j%%=*} result=${j#*=}"; fail=1; }
           done
+          # install may be skipped only when the plan said nothing that installs changed.
+          if [ "$INSTALL" != success ] && ! { [ "$WANTED" = false ] && [ "$INSTALL" = skipped ]; }; then
+            echo "FAIL: install result=$INSTALL"; fail=1
+          fi
           exit $fail

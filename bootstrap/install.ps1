@@ -2,26 +2,32 @@
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 <#
 .SYNOPSIS
-  QGSDK for Windows: one command to a working Qt build environment for QGLogger.
+  QGSDK for Windows: one command to the tools for the QSO Graph software you work on.
 
 .DESCRIPTION
+  Choose profiles with -Profiles (several: -Profiles logger,mcp); with none, it asks. `logger` is Qt
+  and its tools for QSO Graph Logger; `mcp` is uv, the Pythons the MCP servers test against, and git.
+  Running it again with another profile adds it.
+
   Needs nothing installed first: no Python, no git, no Visual Studio, no Qt account, no admin rights.
   Everything goes under one folder (the prefix, default .\prefix beside this checkout); removing QGSDK
   is deleting that folder.
 
   1. QGSDK's own Python (the official python.org build, pinned and checked by SHA-256)
   2. aqtinstall and QGSDK's tooling into a virtual environment
-  3. Qt, the matched MinGW compiler, CMake, Ninja, and NSIS for installers (all versions from manifest.json)
+  3. the profiles: logger is Qt, the matched MinGW compiler, CMake, Ninja, and NSIS for installers;
+     mcp is uv, its Pythons and MinGit (all versions from manifest.json)
 
   Safe to run again: it skips what's already there.
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File bootstrap\install.ps1
+  powershell -ExecutionPolicy Bypass -File bootstrap\install.ps1 -Profiles logger,mcp
 #>
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 param(
-    [string]$Prefix = (Join-Path (Split-Path -Parent $PSScriptRoot) "prefix")
+    [string]$Prefix = (Join-Path (Split-Path -Parent $PSScriptRoot) "prefix"),
+    [string[]]$Profiles = @()  # not -Profile: $PROFILE is PowerShell's own
 )
 
 $ErrorActionPreference = "Stop"
@@ -73,15 +79,26 @@ Remove-Item Env:SETUPTOOLS_SCM_PRETEND_VERSION
 & $VenvPython @Pip --no-deps --no-build-isolation --editable $Repo
 if ($LASTEXITCODE -ne 0) { throw "installing QGSDK's tooling failed" }
 
-# --- 3. Qt and the build tools ---------------------------------------------------------------------
+# --- 3. The profiles: chosen (asked, if none are), then installed -----------------------------------
+# Nothing to check on the system first: on Windows every tool comes from the manifest.
 $Qgsdk = Join-Path $Venv "Scripts\qgsdk.exe"
-& $Qgsdk --prefix $Prefix install
+# `powershell -File ... -Profiles logger,mcp` passes "logger,mcp" as one string: split it.
+$Profiles = @($Profiles | ForEach-Object { $_ -split "," } | Where-Object { $_ })
+$ProfileArgs = @($Profiles | ForEach-Object { "--profile"; $_ })
+& $Qgsdk --prefix $Prefix install @ProfileArgs
 if ($LASTEXITCODE -ne 0) { throw "qgsdk install failed" }
 & $Qgsdk --prefix $Prefix env --shell powershell | Set-Content -Encoding utf8 (Join-Path $Prefix "qgsdk-env.ps1")
 & $Qgsdk --prefix $Prefix env --shell cmd | Set-Content -Encoding ascii (Join-Path $Prefix "qgsdk-env.cmd")
 & $Qgsdk --prefix $Prefix doctor
 
 Write-Host ""
-Write-Host "QGSDK is ready. In your QGLogger checkout, load its environment, then build and package with CMake:"
+$Chosen = (& $Qgsdk --prefix $Prefix select) -split " "
+Write-Host ""
+Write-Host "QGSDK is ready. Load its environment in each new shell:"
 Write-Host "  . $Prefix\qgsdk-env.ps1"
-Write-Host "  cmake --preset release; cmake --build --preset release; cpack --preset release"
+if ($Chosen -contains "logger") {
+    Write-Host "Then, in the logger's checkout: cmake --preset release; cmake --build --preset release; cpack --preset release"
+}
+if ($Chosen -contains "mcp") {
+    Write-Host "Then, in an MCP server's checkout: uv sync --group dev; uv run pytest"
+}

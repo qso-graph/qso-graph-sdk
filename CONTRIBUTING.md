@@ -1,7 +1,7 @@
 # Contributing to QGSDK
 
-Thank you for helping. QGSDK exists so that building QGLogger never depends on one person, so the most
-useful contributions make it simpler, clearer, or work on one more machine.
+Thank you for helping. QGSDK exists so that building QSO Graph's software never depends on one person,
+so the most useful contributions make it simpler, clearer, or work on one more machine.
 
 **The short version, and the hard rules:** [AGENTS.md](AGENTS.md). Written for AI coding agents, and the quickest
 start for anyone.
@@ -10,10 +10,9 @@ start for anyone.
 
 1. Open an issue describing the problem or idea, unless it's a small fix.
 2. Make a branch named for the change: `fix-...`, `feat-...` or `docs-...`.
-3. Open a pull request. CI runs the Python tests. A change to the installer, the manifest or the build
-   also needs the platform checks passing on a clean machine (`tests\windows-check.ps1`,
-   `tests/linux-check.sh`; see
-   [Checking it works](README.md#checking-it-works)); say in the pull request where you ran it.
+3. Open a pull request. CI runs the Python tests and, when the installer, the manifest or the checks
+   change, the platform checks on Windows, Linux and macOS (`tests\windows-check.ps1`,
+   `tests/check.sh`; see [Checking it works](README.md#checking-it-works)).
 4. Another maintainer reviews it. Nobody merges their own pull request.
 
 ## Ground rules
@@ -22,7 +21,7 @@ start for anyone.
   file, with a reason in the pull request.
 - **Nothing outside the prefix.** QGSDK never writes into the system, never needs admin rights, and
   never needs an account.
-- **The wrappers stay optional.** QGLogger must build with plain CMake once the environment is loaded. The
+- **The wrappers stay optional.** The logger must build with plain CMake once the environment is loaded. The
   Windows check proves it (the "deletion test").
 - **Record decisions.** A choice someone might later question (a tool, a version policy) gets a short
   record in `docs/decisions/`: what was decided, and why.

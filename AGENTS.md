@@ -9,9 +9,10 @@ build and check. When a rule here and your task disagree, stop and ask.
 takes to compile and package them, at pinned versions, on a clean machine. It is tooling only: an
 application is compiled and packaged from its own repository.
 
-QSO Graph Logger, the Qt application this kit was first built for, was retired on 2026-10-25 and its
-repository deleted. The Qt tooling stays until KI7MT retires it; a QSO Graph Desktop (Electron) profile
-is planned in #4.
+**It installs by profile**, so a developer gets the tools for what they work on: `logger` (QSO Graph
+Logger, the Qt application: a grid-heavy native program, so Qt is its framework) and `mcp` (the MCP
+servers: uv and their Pythons). A QSO Graph Desktop profile is planned in #4. Windows, Linux and macOS
+for every profile.
 
 ## Rules (each one has a test you can apply)
 
@@ -21,11 +22,14 @@ is planned in #4.
   packages come from the hash-locked `bootstrap/tooling-requirements.txt`). *Test: could a changed
   file be installed without failing?*
 - **Nothing outside the prefix, no admin rights, no accounts.** Everything goes under one folder;
-  removing QGSDK is deleting it. On Linux, system packages are checked and named, never installed.
+  removing QGSDK is deleting it. On Linux and macOS, what must come from the system (packages, Apple's
+  Xcode command-line tools) is checked and named, never installed.
+- **A profile installs only what its work needs**, on every platform it lists. *Test: does
+  `tests/check.sh --profile <one>` pass on a machine with only that profile's system requirements?*
 - **Zero prerequisites on Windows.** `bootstrap\install.ps1` needs nothing installed first: no Python,
-  git, Visual Studio or Qt account. **MinGW, never MSVC.**
+  git, Visual Studio or Qt account. **The logger uses MinGW, never MSVC.**
 - **The wrappers stay optional.** With the environment loaded, plain CMake builds the logger. *Test:
-  `tests/windows-check.ps1` and `tests/linux-check.sh` build the fixture both ways.*
+  `tests/windows-check.ps1` and `tests/check.sh` build the fixture both ways.*
 - **Nothing ships that we cannot build from source,** and every downloaded tool is named in the README
   with its licence.
 - **House rules:** every new file starts with the SPDX header (`GPL-3.0-or-later`, see
@@ -35,14 +39,16 @@ is planned in #4.
 ## Build and check
 
 ```sh
-bootstrap/install.sh                      # Linux; Windows: powershell -File bootstrap\install.ps1
-uv run --extra test pytest                # the Python tests (or: python -m pytest)
-tests/linux-check.sh                      # the full check, on a clean machine or container
+bootstrap/install.sh --profile logger    # Linux and macOS; Windows: powershell -File bootstrap\install.ps1 -Profiles logger
+uv sync --group dev && uv run pytest      # the Python tests; also uv run ruff check . and uv run mypy src
+tests/check.sh                            # the full check, on a clean machine or container
 ```
 
-- **What CI checks:** the Python tests only. **It does not check** a clean-machine install on Windows or
-  Linux; maintainers run `tests/windows-check.ps1` and `tests/linux-check.sh` on fresh machines. A pull
-  request that changes the installer, the manifest or the bootstrap says where it ran them.
+- **What CI checks:** ruff, mypy, the Python tests on 3.11 to 3.13, an audit of the locked
+  dependencies, and, when the installer, the manifest or the checks change (and weekly), the full check
+  with every profile on Windows, Linux, Apple-silicon and Intel Macs. **It does not check** a truly
+  fresh machine: GitHub's runners carry tools of their own, so a release is also checked on a clean VM
+  (`docs/m0.md`).
 
 ## Where the real documents are
 

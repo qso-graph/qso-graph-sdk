@@ -1,4 +1,4 @@
-QSO Graph SDK (QGSDK): the build kit for QSO Graph Logger
+QSO Graph SDK (QGSDK): the build kit for QSO Graph's software
 Copyright (C) 2026 the QGSDK contributors (see AUTHORS)
 
 QGSDK is free software: you can redistribute it and/or modify it under the terms of the GNU General
@@ -11,5 +11,6 @@ QGSDK and QSO Graph Logger are qso-graph projects, built for clubs large and sma
 with its source, and the licence keeps it that way: whoever
 maintains them, they stay free software.
 
-What QGSDK downloads (Python, aqtinstall and its dependencies, Qt, MinGW, CMake, Ninja, NSIS) is not
-part of this repository and is used under each project's own licence.
+What QGSDK downloads (Python, aqtinstall and its dependencies, Qt, MinGW, CMake, Ninja, NSIS, uv,
+MinGit) is not part of this repository and is used under each project's own licence; the README lists
+each one's.
