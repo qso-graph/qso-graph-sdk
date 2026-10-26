@@ -39,11 +39,11 @@ def test_asking_takes_numbers_names_or_all(monkeypatch, capsys):
     from qgsdk.cli import ask
 
     loaded = manifest.load()
-    answers = iter(["9", "2 1"])
+    answers = iter(["9", "3 2"])
     monkeypatch.setattr("builtins.input", lambda: next(answers))
     assert ask(loaded) == ["mcp", "logger"]  # "9" refused, then asked again
-    assert "Choose from 1-2" in capsys.readouterr().err
+    assert "Choose from 1-3" in capsys.readouterr().err
     monkeypatch.setattr("builtins.input", lambda: "all")
-    assert ask(loaded) == ["logger", "mcp"]
+    assert ask(loaded) == ["desktop", "logger", "mcp"]
     monkeypatch.setattr("builtins.input", lambda: "mcp,logger")
     assert ask(loaded) == ["mcp", "logger"]

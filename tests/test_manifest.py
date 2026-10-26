@@ -13,7 +13,7 @@ from qgsdk import manifest as m
 from qgsdk.layout import build_environment, qt_dir
 from qgsdk.provision import aqt_commands
 
-PLATFORMS = [("windows", "x86_64"), ("linux", "x86_64"), ("macos", "arm64"), ("macos", "x86_64")]
+PLATFORMS = [("windows", "x86_64"), ("linux", "x86_64"), ("linux", "arm64"), ("macos", "arm64"), ("macos", "x86_64")]
 
 
 def logger(platform="windows", machine="x86_64"):
@@ -24,8 +24,16 @@ def mcp(platform="windows", machine="x86_64"):
     return m.load().profile("mcp", platform, machine)
 
 
+def desktop(platform="windows", machine="x86_64"):
+    return m.load().profile("desktop", platform, machine)
+
+
+def supported(name, platform, machine):
+    return not (name == "logger" and (platform, machine) == ("linux", "arm64"))  # no Qt for it yet
+
+
 def test_the_profiles():
-    assert m.load().names() == ["logger", "mcp"]
+    assert m.load().names() == ["desktop", "logger", "mcp"]
 
 
 def test_the_manifest_pins_everything_exactly():
@@ -33,6 +41,8 @@ def test_the_manifest_pins_everything_exactly():
     assert re.search(r"/archive/[0-9a-f]{40}\.zip$", data["aqtinstall"]["requirement"])  # a commit, not a branch
     for platform, machine in PLATFORMS:
         for name in m.load().names():
+            if not supported(name, platform, machine):
+                continue
             p = m.load().profile(name, platform, machine)
             if p.qt:
                 assert re.fullmatch(r"\d+\.\d+\.\d+", p.qt.version)
@@ -43,7 +53,7 @@ def test_the_manifest_pins_everything_exactly():
 
 def test_python_is_pinned_for_every_platform():
     data = json.loads(m.DEFAULT_MANIFEST.read_text())
-    for key in ("windows", "linux-x86_64", "macos-arm64", "macos-x86_64"):
+    for key in ("windows", "linux-x86_64", "linux-arm64", "macos-arm64", "macos-x86_64"):
         assert data["python"][key]["url"].startswith("https://")
         assert re.fullmatch(r"[0-9a-f]{64}", data["python"][key]["sha256"])
 
@@ -87,8 +97,9 @@ def test_a_download_for_one_machine_is_only_used_on_it():
     arm, intel = mcp("macos", "arm64").downloads, mcp("macos", "x86_64").downloads
     assert [d.bin for d in arm] == ["uv-aarch64-apple-darwin"]
     assert [d.bin for d in intel] == ["uv-x86_64-apple-darwin"]
+    assert [d.bin for d in mcp("linux", "arm64").downloads] == ["uv-aarch64-unknown-linux-gnu"]
     with pytest.raises(SystemExit, match="doesn't support 'linux' on 'arm64'"):
-        mcp("linux", "arm64")  # no uv pinned for it
+        logger("linux", "arm64")  # Qt's Linux build here is x86-64 only
 
 
 def test_unknown_profiles_and_platforms_say_so():
@@ -213,3 +224,77 @@ def test_a_tarball_unpacks_and_cannot_escape_its_folder(tmp_path, monkeypatch):
     with pytest.raises(tarfile.OutsideDestinationError):
         provision.fetch(tmp_path, Download("evil", "1", "https://example.org/e.tar.gz", hashlib.sha256(evil).hexdigest(), "."))
     assert not (tmp_path / "escaped").exists()
+
+
+def test_desktop_on_every_platform_and_machine():
+    for platform, machine in PLATFORMS:
+        p = desktop(platform, machine)
+        names = [d.name for d in p.downloads]
+        assert names[:4] == ["Node.js", "rustup-init", "Go", "CMake"]
+        assert p.rust and p.qt is None
+    assert [d.name for d in desktop("windows").downloads][4:] == ["Ninja", "NASM", "libclang", "MinGit"]
+    assert [d.name for d in desktop("linux", "arm64").downloads] == ["Node.js", "rustup-init", "Go", "CMake"]
+    assert all("arm64" in d.url or "aarch64" in d.url for d in desktop("linux", "arm64").downloads)
+
+
+def test_desktop_pins_match_the_desktop_repository_format():
+    p = desktop()
+    assert re.fullmatch(r"\d+\.\d+\.\d+", p.rust)  # rust-toolchain.toml's channel, exactly
+    node = next(d for d in p.downloads if d.name == "Node.js")
+    assert f"/v{node.version}/" in node.url  # .node-version's version, exactly
+
+
+def test_the_desktop_environment_keeps_rust_and_go_to_the_prefix():
+    env = build_environment(Path("/sdk"), [desktop("windows")], base={"PATH": "/usr/bin"})
+    assert env["RUSTUP_HOME"] == str(Path("/sdk/rust/rustup"))
+    assert env["CARGO_HOME"] == str(Path("/sdk/rust/cargo"))
+    assert env["GOTOOLCHAIN"] == "local"
+    assert env["LIBCLANG_PATH"] == str(Path("/sdk/tools/libclang/clang+llvm-23.1.4-x86_64-pc-windows-msvc/bin"))
+    parts = env["PATH"].split(os.pathsep)
+    assert str(Path("/sdk/rust/cargo/bin")) in parts
+    assert not any("rustup-init" in part for part in parts)  # the installer, not a tool to run
+
+
+def test_rustup_installs_the_pinned_toolchain_after_rustup_init(tmp_path):
+    from qgsdk.provision import components
+
+    items = components(tmp_path, [desktop("linux")])
+    assert [c.key for c in items][-1] == "rust"
+    assert items[-1].command == [str(tmp_path / "tools/rustup-init/./rustup-init"), "-y", "--no-modify-path",
+                                 "--profile", "minimal", "--default-toolchain", desktop().rust]
+
+
+def test_only_the_listed_members_are_unpacked(tmp_path, monkeypatch):
+    import hashlib
+    import io
+    import tarfile
+
+    from qgsdk import provision
+    from qgsdk.manifest import Download
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:xz") as t:
+        for name in ("llvm/bin/libclang.dll", "llvm/bin/clang.exe", "llvm/lib/clang/23/include/stddef.h"):
+            info = tarfile.TarInfo(name)
+            info.size = 1
+            t.addfile(info, io.BytesIO(b"x"))
+    payload = buf.getvalue()
+    _serve(monkeypatch, payload)
+    provision.fetch(tmp_path, Download("libclang", "23", "https://example.org/llvm.tar.xz", hashlib.sha256(payload).hexdigest(),
+                                       "llvm/bin", members=("*/bin/libclang.dll", "*/lib/clang/*/include/*")))
+    root = tmp_path / "tools" / "libclang" / "llvm"
+    assert (root / "bin" / "libclang.dll").is_file() and (root / "lib/clang/23/include/stddef.h").is_file()
+    assert not (root / "bin" / "clang.exe").exists()
+
+
+def test_a_single_program_is_kept_and_made_runnable(tmp_path, monkeypatch):
+    import hashlib
+
+    from qgsdk import provision
+    from qgsdk.manifest import Download
+
+    _serve(monkeypatch, b"#!/bin/sh\n")
+    provision.fetch(tmp_path, Download("rustup-init", "1", "https://example.org/x/rustup-init",
+                                       hashlib.sha256(b"#!/bin/sh\n").hexdigest(), "."))
+    program = tmp_path / "tools" / "rustup-init" / "rustup-init"
+    assert program.is_file() and os.access(program, os.X_OK)

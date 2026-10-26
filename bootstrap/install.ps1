@@ -6,10 +6,13 @@
 
 .DESCRIPTION
   Choose profiles with -Profiles (several: -Profiles logger,mcp); with none, it asks. `logger` is Qt
-  and its tools for QSO Graph Logger; `mcp` is uv, the Pythons the MCP servers test against, and git.
+  and its tools for QSO Graph Logger; `mcp` is uv, the Pythons the MCP servers test against, and git;
+  `desktop` is Node.js, Rust, Go, CMake, Ninja, NASM and libclang for QSO Graph Desktop.
   Running it again with another profile adds it.
 
   Needs nothing installed first: no Python, no git, no Visual Studio, no Qt account, no admin rights.
+  The one exception is the desktop profile: Rust on Windows links with Microsoft's C++ Build Tools,
+  which only Microsoft's installer can install, with an administrator. It checks, and names the command.
   Everything goes under one folder (the prefix, default .\prefix beside this checkout); removing QGSDK
   is deleting that folder.
 
@@ -79,20 +82,38 @@ Remove-Item Env:SETUPTOOLS_SCM_PRETEND_VERSION
 & $VenvPython @Pip --no-deps --no-build-isolation --editable $Repo
 if ($LASTEXITCODE -ne 0) { throw "installing QGSDK's tooling failed" }
 
-# --- 3. The profiles: chosen (asked, if none are), then installed -----------------------------------
-# Nothing to check on the system first: on Windows every tool comes from the manifest.
+# --- 3. The profiles: chosen (asked, if none are), each one's system check, then installed ---------
 $Qgsdk = Join-Path $Venv "Scripts\qgsdk.exe"
 # `powershell -File ... -Profiles logger,mcp` passes "logger,mcp" as one string: split it.
 $Profiles = @($Profiles | ForEach-Object { $_ -split "," } | Where-Object { $_ })
 $ProfileArgs = @($Profiles | ForEach-Object { "--profile"; $_ })
-& $Qgsdk --prefix $Prefix install @ProfileArgs
+$Chosen = (& $Qgsdk --prefix $Prefix select @ProfileArgs) -split " "
+if ($LASTEXITCODE -ne 0) { throw "choosing the profiles failed" }
+Write-Host "QGSDK: profiles $($Chosen -join ' ')"
+
+# desktop: Rust links with Microsoft's C++ Build Tools (the MSVC compiler and a Windows SDK). Everything
+# else on Windows comes from the manifest. vswhere ships with every Visual Studio installer.
+if ($Chosen -contains "desktop") {
+    $Vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+    $Msvc = if (Test-Path $Vswhere) {
+        & $Vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    }
+    if (-not $Msvc) {
+        Write-Host "The desktop profile needs Microsoft's C++ Build Tools, which need an administrator to install." -ForegroundColor Yellow
+        Write-Host "Install them with Microsoft's own installer (in a terminal run as administrator):"
+        Write-Host '  winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"'
+        Write-Host "then run this again. Nothing more was installed."
+        exit 1
+    }
+}
+
+& $Qgsdk --prefix $Prefix install
 if ($LASTEXITCODE -ne 0) { throw "qgsdk install failed" }
 & $Qgsdk --prefix $Prefix env --shell powershell | Set-Content -Encoding utf8 (Join-Path $Prefix "qgsdk-env.ps1")
 & $Qgsdk --prefix $Prefix env --shell cmd | Set-Content -Encoding ascii (Join-Path $Prefix "qgsdk-env.cmd")
 & $Qgsdk --prefix $Prefix doctor
 
 Write-Host ""
-$Chosen = (& $Qgsdk --prefix $Prefix select) -split " "
 Write-Host ""
 Write-Host "QGSDK is ready. Load its environment in each new shell:"
 Write-Host "  . $Prefix\qgsdk-env.ps1"
@@ -101,4 +122,7 @@ if ($Chosen -contains "logger") {
 }
 if ($Chosen -contains "mcp") {
     Write-Host "Then, in an MCP server's checkout: uv sync --group dev; uv run pytest"
+}
+if ($Chosen -contains "desktop") {
+    Write-Host "Then, in QSO Graph Desktop's checkout: npm ci, then its README's build steps"
 }

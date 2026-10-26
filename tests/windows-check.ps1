@@ -14,7 +14,10 @@
      optional, so a developer can use CMake directly or their IDE);
   4. checks NSIS (makensis), which CPack uses to make an installer, runs;
   mcp:
-  5. runs each Python the MCP servers test against, through uv, and git; uv's Pythons are in the prefix.
+  5. runs each Python the MCP servers test against, through uv, and git; uv's Pythons are in the prefix;
+  desktop:
+  6. clones QSO Graph Desktop ($env:QGSDK_DESKTOP_REF, default main), checks its pinned Node.js and Rust
+     are the versions QGSDK installed, and runs its setup and its fast check.
 
   Prints "== PASS" and exits 0 when everything works; otherwise prints "== FAIL: <what>" and exits 1.
   Programs are started with --smoke (they quit once their window is up) on Qt's offscreen platform, so
@@ -27,7 +30,7 @@
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 param(
     [string]$Prefix = (Join-Path (Split-Path -Parent $PSScriptRoot) "prefix"),
-    [string[]]$Profiles = @("logger", "mcp")
+    [string[]]$Profiles = @("desktop", "logger", "mcp")
 )
 $Profiles = @($Profiles | ForEach-Object { $_ -split "," } | Where-Object { $_ })
 
@@ -88,6 +91,37 @@ try {
         $Git = (Get-Command git).Source
         if (-not $Git.StartsWith($Prefix)) { throw "git is not the prefix's: $Git" }
         Run "git --version"
+    }
+
+    if ($Profiles -contains "desktop") {
+        Write-Host "== 6. QSO Graph Desktop: its pins match, it builds, and its fast check passes"
+        $Work = Join-Path ([IO.Path]::GetTempPath()) ("qgsdk-desktop-" + [Guid]::NewGuid())
+        $Ref = if ($env:QGSDK_DESKTOP_REF) { $env:QGSDK_DESKTOP_REF } else { "main" }
+        Run "git clone -q --depth 1 --branch $Ref https://github.com/qso-graph/qso-graph-desktop.git `"$Work`""
+        foreach ($tool in "node", "npm", "cargo", "rustc", "go", "cmake", "ninja", "nasm") {
+            $Where = (Get-Command $tool).Source
+            if (-not $Where.StartsWith($Prefix)) { throw "$tool is not the prefix's: $Where" }
+        }
+        $Want = (Get-Content (Join-Path $Work ".node-version") -Raw).Trim()
+        if ((& node --version) -ne "v$Want") { throw "Node.js $(& node --version), but QSO Graph Desktop pins $Want" }
+        $Toolchain = Join-Path $Work "rust-toolchain.toml"
+        if (Test-Path $Toolchain) {
+            $Want = ((Select-String -Path $Toolchain -Pattern '^channel *= *"(.*)"').Matches[0].Groups[1].Value)
+            $Have = (Get-Content (Join-Path $Repo "manifest.json") -Raw | ConvertFrom-Json).profiles.desktop.rust
+            if ($Have -ne $Want) { throw "QGSDK installs Rust $Have, but QSO Graph Desktop pins $Want" }
+        }
+        Run "rustc --version"
+        Run "go version"
+        Push-Location $Work
+        try {
+            Run "npm ci"
+            Run "node scripts/fetch-adif.mjs"
+            Run "node scripts/fetch-counties.mjs"
+            Run "npm run build"
+            Run "node scripts/fetch-pota.mjs"  # make setup's last step: it reads what the build made
+            Run "npm run check"
+        } finally { Pop-Location }
+        Remove-Item -Recurse -Force $Work -ErrorAction SilentlyContinue
     }
 
     Write-Host "== PASS: QGSDK installed $($Profiles -join ' '), and each did what it promises"

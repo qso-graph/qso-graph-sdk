@@ -3,7 +3,8 @@
 """manifest.json: every version QGSDK installs, pinned in one place and grouped by profile (docs/manifest.md).
 
 A profile is what one kind of work needs: `logger` (QSO Graph Logger: Qt and its tools), `mcp` (the MCP
-servers: uv and git). A developer installs the profiles they work on, and only those.
+servers: uv and git), `desktop` (QSO Graph Desktop: Node.js, Rust, Go, CMake). A developer installs the
+profiles they work on, and only those.
 """
 
 from __future__ import annotations
@@ -41,9 +42,11 @@ class Tool:
 class Download:
     name: str      # "NSIS"
     version: str   # "3.13"
-    url: str       # the publisher's archive (a zip, or a .tar.gz)
+    url: str       # the publisher's archive (a zip, .tar.gz or .tar.xz) or a single program (rustup-init)
     sha256: str    # checked before anything is unpacked
     bin: str       # its bin directory, relative to <prefix>/tools/<name>
+    members: tuple[str, ...] = ()  # unpack only these (glob patterns); empty: everything
+    env: tuple[tuple[str, str], ...] = ()  # variables to set, each a path relative to <prefix>/tools/<name>
 
 
 @dataclass(frozen=True)
@@ -66,6 +69,7 @@ class Profile:
     tools: tuple[Tool, ...] = ()
     downloads: tuple[Download, ...] = ()
     python_versions: tuple[str, ...] = ()  # installed with uv (the mcp profile)
+    rust: str = ""  # the Rust toolchain rustup installs (the desktop profile)
 
 
 @dataclass(frozen=True)
@@ -90,19 +94,23 @@ class Manifest:
             if platform not in q:
                 raise SystemExit(f"The {name} profile doesn't support {platform!r} yet")
             p = q[platform]
+            if p.get("machine", machine) != machine:
+                raise SystemExit(f"The {name} profile doesn't support {platform!r} on {machine!r} yet")
             qt = Qt(q["version"], q["floor"], p["host"], p["target"], p["arch"], p["directory"])
         tools = tuple(
             Tool(name=t["name"], tool=t["tool"], variant=t["variant"], version=t["version"], bin=t["bin"])
             for t in spec.get("tools", {}).get(platform, [])
         )
         downloads = tuple(
-            Download(name=d["name"], version=d["version"], url=d["url"], sha256=d["sha256"].lower(), bin=d["bin"])
+            Download(name=d["name"], version=d["version"], url=d["url"], sha256=d["sha256"].lower(), bin=d["bin"],
+                     members=tuple(d.get("members", ())), env=tuple(d.get("env", {}).items()))
             for d in spec.get("downloads", {}).get(platform, [])
             if d.get("machine", machine) == machine
         )
         if not (qt or tools or downloads):
             raise SystemExit(f"The {name} profile doesn't support {platform!r} on {machine!r} yet")
-        return Profile(name, spec["description"], qt, tools, downloads, tuple(spec.get("python_versions", ())))
+        return Profile(name, spec["description"], qt, tools, downloads, tuple(spec.get("python_versions", ())),
+                       spec.get("rust", ""))
 
 
 def load(path: Path = DEFAULT_MANIFEST) -> Manifest:

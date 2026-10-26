@@ -31,6 +31,7 @@ from .layout import (
     qt_dir,
     qt_root,
     read_profiles,
+    rust_dir,
     sdk_path,
     sdk_variables,
     uv_dir,
@@ -151,8 +152,13 @@ def main(argv: list[str] | None = None) -> int:
             for tool in p.tools:
                 print(f"  {tool.name} {tool.version}: {qt_root(prefix) / tool.bin}  {state(qt_root(prefix) / tool.bin)}")
             for d in p.downloads:
+                if d.name == "rustup-init":
+                    continue  # the installer; Rust itself is below
                 where = download_dir(prefix, d.name) / d.bin
                 print(f"  {d.name} {d.version}: {where}  {state(where)}")
+            if p.rust:
+                cargo = rust_dir(prefix) / "cargo" / "bin"
+                print(f"  Rust {p.rust} (rustup): {cargo}  {state(cargo)}")
             if p.python_versions:
                 print(f"  Python {' '.join(p.python_versions)} (uv): {uv_dir(prefix) / 'python'}  {state(uv_dir(prefix) / 'python')}")
         return 0

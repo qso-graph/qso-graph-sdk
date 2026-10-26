@@ -9,7 +9,16 @@ supports Windows, Linux and macOS. The first two:
 - **`mcp`**: qso-graph's MCP servers. uv, and the Pythons their CI tests against (3.11 to 3.13), installed
   by uv into the prefix; git where the system has none (MinGit on Windows).
 
-A QSO Graph Desktop profile follows (#4).
+- **`desktop`**: QSO Graph Desktop. Node.js and Rust at the versions Desktop pins (`.node-version`,
+  `rust-toolchain.toml`), and Go and CMake for AWS-LC's FIPS module, which the credential core links. On
+  Windows the FIPS build also needs Ninja, NASM and bindgen, which loads libclang: QGSDK unpacks just
+  libclang and clang's headers from LLVM's release. And there Rust links with Microsoft's C++ Build
+  Tools, which need an administrator: the one prerequisite QGSDK checks for on Windows rather than
+  installs (Microsoft's installer, never a copy of ours). On Linux arm64 (a Raspberry Pi 5) too.
+
+  Its check builds Desktop itself: clone, `npm ci`, build (which compiles the credential core) and its
+  fast check. It also fails if Desktop's pins and QGSDK's differ, so the two cannot drift for longer
+  than a week.
 
 **Why profiles:** one person works on the logger, another on an MCP server, a third on both. Installing
 Qt (about 2 GB) for someone who works only on MCP servers is waste, and a kit that installs everything

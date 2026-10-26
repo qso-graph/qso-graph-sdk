@@ -9,10 +9,10 @@ build and check. When a rule here and your task disagree, stop and ask.
 takes to compile and package them, at pinned versions, on a clean machine. It is tooling only: an
 application is compiled and packaged from its own repository.
 
-**It installs by profile**, so a developer gets the tools for what they work on: `logger` (QSO Graph
-Logger, the Qt application: a grid-heavy native program, so Qt is its framework) and `mcp` (the MCP
-servers: uv and their Pythons). A QSO Graph Desktop profile is planned in #4. Windows, Linux and macOS
-for every profile.
+**It installs by profile**, so a developer gets the tools for what they work on: `desktop` (QSO Graph
+Desktop: Node.js, Rust, Go, CMake), `logger` (QSO Graph Logger, the Qt application: a grid-heavy native
+program, so Qt is its framework) and `mcp` (the MCP servers: uv and their Pythons). Windows, Linux and
+macOS for every profile; Linux arm64 for desktop and mcp.
 
 ## Rules (each one has a test you can apply)
 
@@ -26,8 +26,13 @@ for every profile.
   Xcode command-line tools) is checked and named, never installed.
 - **A profile installs only what its work needs**, on every platform it lists. *Test: does
   `tests/check.sh --profile <one>` pass on a machine with only that profile's system requirements?*
-- **Zero prerequisites on Windows.** `bootstrap\install.ps1` needs nothing installed first: no Python,
-  git, Visual Studio or Qt account. **The logger uses MinGW, never MSVC.**
+- **Zero prerequisites on Windows**, but one: `bootstrap\install.ps1` needs nothing installed first (no
+  Python, git, Visual Studio or Qt account) except, for the desktop profile, Microsoft's C++ Build
+  Tools, which Rust on Windows links with and only Microsoft's installer (as an administrator) can
+  install: checked and named, never installed or redistributed. **The logger uses MinGW, never MSVC.**
+- **Desktop's pins are Desktop's.** The `desktop` profile's Node.js and Rust are the versions QSO Graph
+  Desktop's `.node-version` and `rust-toolchain.toml` name. *Test: `tests/check.sh --profile desktop`
+  fails when they differ.*
 - **The wrappers stay optional.** With the environment loaded, plain CMake builds the logger. *Test:
   `tests/windows-check.ps1` and `tests/check.sh` build the fixture both ways.*
 - **Nothing ships that we cannot build from source,** and every downloaded tool is named in the README

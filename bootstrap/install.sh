@@ -4,12 +4,13 @@
 # QGSDK for Linux and macOS: one command to the tools for the QSO Graph software you work on.
 #
 # Choose profiles with --profile (repeat for more); with none, it asks. `logger` is Qt and its tools for
-# QSO Graph Logger; `mcp` is uv and the Pythons the MCP servers test against. Running it again with
-# another profile adds it.
+# QSO Graph Logger; `mcp` is uv and the Pythons the MCP servers test against; `desktop` is Node.js, Rust,
+# Go and CMake for QSO Graph Desktop. Running it again with another profile adds it.
 #
 # Needs from the system what QGSDK can't install without root. Always: curl and tar. logger on Linux: a
 # C++17 compiler (GCC), the OpenGL, EGL and xkbcommon headers and the libraries Qt's Linux build loads;
-# logger and mcp on macOS: Apple's Xcode command-line tools (clang, git); mcp on Linux: git. It checks
+# desktop on Linux: a C/C++ compiler, make and git; mcp on Linux: git; every profile on macOS: Apple's
+# Xcode command-line tools (clang, make, git). It checks
 # for them and, if any is missing, prints the command that installs them and stops before installing
 # the profile. No root, no Qt account, no system Python.
 #
@@ -22,7 +23,7 @@
 #
 # Safe to run again: it skips what's already there.
 #
-#   bootstrap/install.sh [--prefix DIR] [--profile logger|mcp ...]
+#   bootstrap/install.sh [--prefix DIR] [--profile desktop|logger|mcp ...]
 set -euo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -144,8 +145,18 @@ for profile in $chosen; do
         linux:mcp)
             dnf="$dnf git"; apt="$apt git"
             command -v git >/dev/null 2>&1 || missing+=(git) ;;
+        linux:desktop)
+            # The credential core's C parts (AWS-LC's FIPS module) and npm's native builds; and libatomic,
+            # which Node.js's own Linux build loads (a minimal install lacks it).
+            # unzip: its setup unpacks ADIF's release with it.
+            dnf="$dnf gcc gcc-c++ make git unzip libatomic"; apt="$apt build-essential git unzip libatomic1"
+            for tool in cc c++ make git unzip; do
+                command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+            done
+            ldconfig_cmd="$(command -v ldconfig || echo /sbin/ldconfig)"
+            "$ldconfig_cmd" -p 2>/dev/null | grep -q "^[[:space:]]*libatomic.so.1 " || missing+=(libatomic.so.1) ;;
         macos:*)
-            # clang (logger) and git (mcp) both come with Apple's Xcode command-line tools. On a Mac
+            # clang (logger, desktop), make and git all come with Apple's Xcode command-line tools. On a Mac
             # without them, /usr/bin/git and clang++ exist but only offer to install them, so ask
             # xcode-select whether they are really there.
             needs_xcode=yes ;;
@@ -158,8 +169,8 @@ if [ ${#missing[@]} -gt 0 ]; then
     echo "QGSDK needs these from your system first: ${missing[*]}" >&2
     echo "Install them with:" >&2
     if [ "$os" = linux ]; then
-        echo "  Fedora / RHEL / Rocky / Alma:  sudo dnf install$dnf" >&2
-        echo "  Debian / Ubuntu:               sudo apt install$apt" >&2
+        echo "  Fedora / RHEL / Rocky / Alma:  sudo dnf install $(tr ' ' '\n' <<<"$dnf" | awk 'NF && !seen[$0]++' | xargs)" >&2
+        echo "  Debian / Ubuntu:               sudo apt install $(tr ' ' '\n' <<<"$apt" | awk 'NF && !seen[$0]++' | xargs)" >&2
     else
         echo "  xcode-select --install" >&2
     fi
@@ -179,4 +190,7 @@ case " $chosen " in
 esac
 case " $chosen " in
     *" mcp "*) echo "Then, in an MCP server's checkout: uv sync --group dev && uv run pytest" ;;
+esac
+case " $chosen " in
+    *" desktop "*) echo "Then, in QSO Graph Desktop's checkout: make setup && make check" ;;
 esac

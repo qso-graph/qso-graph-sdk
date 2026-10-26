@@ -10,8 +10,9 @@ written into the system, and no admin rights are needed.
     <prefix>/qgsdk-installed.json       what was installed, component by component
     <prefix>/Qt/<qt version>/<dir>/     Qt, as aqtinstall lays it out (logger)
     <prefix>/Qt/Tools/...               the compiler, CMake and Ninja (logger)
-    <prefix>/tools/<name>/              tools from elsewhere: NSIS, uv, MinGit (manifest.json's "downloads")
+    <prefix>/tools/<name>/              tools from elsewhere: NSIS, uv, Node.js, Go, ... (manifest.json's "downloads")
     <prefix>/uv/                        the Pythons and cache uv uses (mcp)
+    <prefix>/rust/                      rustup and cargo, and the Rust toolchain (desktop)
 """
 
 from __future__ import annotations
@@ -42,6 +43,10 @@ def uv_dir(prefix: Path) -> Path:
     return prefix / "uv"
 
 
+def rust_dir(prefix: Path) -> Path:
+    return prefix / "rust"
+
+
 def sdk_path(prefix: Path, profiles: list[Profile]) -> list[Path]:
     """The directories QGSDK puts first on PATH, profile by profile: Qt's bin, the compiler, CMake and
     Ninja, then the downloaded tools (NSIS, uv, git)."""
@@ -50,12 +55,15 @@ def sdk_path(prefix: Path, profiles: list[Profile]) -> list[Path]:
         if p.qt:
             out.append(qt_dir(prefix, p.qt) / "bin")
         out += [qt_root(prefix) / tool.bin for tool in p.tools]
-        out += [download_dir(prefix, d.name) / d.bin for d in p.downloads]
+        out += [download_dir(prefix, d.name) / d.bin for d in p.downloads if d.name != "rustup-init"]
+        if p.rust:
+            out.append(rust_dir(prefix) / "cargo" / "bin")
     return list(dict.fromkeys(out))  # once each, in order
 
 
 def sdk_variables(prefix: Path, profiles: list[Profile]) -> dict[str, str]:
-    """The variables besides PATH: Qt for CMake (logger); uv's Pythons and cache inside the prefix (mcp)."""
+    """The variables besides PATH: Qt for CMake (logger); uv's Pythons and cache inside the prefix (mcp);
+    rustup, cargo and Go kept to the prefix and their pinned versions, and libclang for bindgen (desktop)."""
     env = {"QGSDK_PREFIX": str(prefix)}
     for p in profiles:
         if p.qt:
@@ -63,6 +71,14 @@ def sdk_variables(prefix: Path, profiles: list[Profile]) -> dict[str, str]:
         if p.python_versions:
             env["UV_PYTHON_INSTALL_DIR"] = str(uv_dir(prefix) / "python")
             env["UV_CACHE_DIR"] = str(uv_dir(prefix) / "cache")
+        if p.rust:
+            env["RUSTUP_HOME"] = str(rust_dir(prefix) / "rustup")
+            env["CARGO_HOME"] = str(rust_dir(prefix) / "cargo")
+        for d in p.downloads:
+            if d.name == "Go":
+                env["GOTOOLCHAIN"] = "local"  # the pinned Go, never one it would download for itself
+            for name, rel in d.env:
+                env[name] = str(download_dir(prefix, d.name) / rel)
     return env
 
 

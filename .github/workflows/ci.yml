@@ -104,11 +104,16 @@ jobs:
     needs: [plan]
     if: ${{ needs.plan.outputs.install == 'true' }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-15-intel]  # macos-latest is Apple silicon
+        include:  # macos-latest is Apple silicon; ubuntu-24.04-arm is Linux arm64 (a Raspberry Pi 5)
+          - { os: windows-latest, profiles: "desktop logger mcp" }
+          - { os: ubuntu-latest, profiles: "desktop logger mcp" }
+          - { os: ubuntu-24.04-arm, profiles: "desktop mcp" }  # Qt's Linux build is x86-64 only
+          - { os: macos-latest, profiles: "desktop logger mcp" }
+          - { os: macos-15-intel, profiles: "desktop logger mcp" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -116,14 +121,21 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
-          sudo apt-get install -q -y g++ libgl-dev libegl-dev libxkbcommon-dev libdbus-1-3 libfontconfig1 libfreetype6 libglib2.0-0 libwayland-cursor0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-util1 libxcb-xkb1 git
+          sudo apt-get install -q -y build-essential libatomic1 unzip g++ libgl-dev libegl-dev libxkbcommon-dev libdbus-1-3 libfontconfig1 libfreetype6 libglib2.0-0 libwayland-cursor0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-util1 libxcb-xkb1 git
       - name: tests/check.sh
         if: runner.os != 'Windows'
-        run: tests/check.sh --prefix "$RUNNER_TEMP/qgsdk"
+        env:
+          PROFILES: ${{ matrix.profiles }}
+        run: |
+          args=()
+          for p in $PROFILES; do args+=(--profile "$p"); done
+          tests/check.sh --prefix "$RUNNER_TEMP/qgsdk" "${args[@]}"
       - name: tests/windows-check.ps1
         if: runner.os == 'Windows'
         shell: pwsh
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\windows-check.ps1 -Prefix "$env:RUNNER_TEMP\qgsdk"
+        env:
+          PROFILES: ${{ matrix.profiles }}
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\windows-check.ps1 -Prefix "$env:RUNNER_TEMP\qgsdk" -Profiles ($env:PROFILES -replace ' ', ',')
 
   ci-all-green:
     name: ci-all-green

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
 """Install what the chosen profiles need, at the versions manifest.json pins: Qt and its tools with
-aqtinstall, the other tools listed under "downloads", and the Pythons uv installs.
+aqtinstall, the other tools listed under "downloads", the Pythons uv installs, and the Rust toolchain
+rustup installs.
 
 aqtinstall downloads from Qt's own repositories (no Qt account), checks every archive against Qt's
 published hashes, and unpacks into the prefix. A download (NSIS, uv, MinGit) comes from its publisher and
@@ -15,8 +16,10 @@ matches the manifest and its files are there. `force` reinstalls everything.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
+import os
 import shutil
 import ssl
 import subprocess
@@ -27,7 +30,7 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from .layout import build_environment, download_dir, qt_dir, qt_root, uv_dir
+from .layout import build_environment, download_dir, qt_dir, qt_root, rust_dir, uv_dir
 from .manifest import Download, Profile
 
 RECORD = "qgsdk-installed.json"
@@ -35,7 +38,7 @@ RECORD = "qgsdk-installed.json"
 
 @dataclass(frozen=True)
 class Component:
-    key: str        # "qt", the tool name ("tools_cmake"), "download:<name>", or "uv-python"
+    key: str        # "qt", the tool name ("tools_cmake"), "download:<name>", "uv-python" or "rust"
     identity: str   # what the manifest pins for it: "6.12.0 win64_mingw", "qt.tools.cmake 3.30.5"
     path: Path      # the folder that must exist once it's installed
     command: list[str]              # the command that installs it (empty for a download)
@@ -44,7 +47,7 @@ class Component:
 
 def components(prefix: Path, profiles: list[Profile]) -> list[Component]:
     """Everything the profiles install, in order and once each: Qt, then each Qt tool, then the downloads,
-    then the Pythons uv installs (uv must be there first)."""
+    then the Pythons uv installs and the Rust toolchain rustup installs (uv and rustup must be there first)."""
     out = str(qt_root(prefix))
     aqt = [sys.executable, "-m", "aqt"]
     items: dict[str, Component] = {}
@@ -70,6 +73,13 @@ def components(prefix: Path, profiles: list[Profile]) -> list[Component]:
             items.setdefault("uv-python", Component(
                 "uv-python", f"uv {uv.version}: Python {' '.join(p.python_versions)}", uv_dir(prefix) / "python",
                 [str(exe), "python", "install", *p.python_versions],
+            ))
+        if p.rust:
+            init = next(d for d in p.downloads if d.name == "rustup-init")
+            exe = download_dir(prefix, init.name) / init.bin / init.url.rsplit("/", 1)[-1]
+            items.setdefault("rust", Component(
+                "rust", f"Rust {p.rust} (rustup {init.version})", rust_dir(prefix) / "cargo" / "bin",
+                [str(exe), "-y", "--no-modify-path", "--profile", "minimal", "--default-toolchain", p.rust],
             ))
     return list(items.values())
 
@@ -105,14 +115,24 @@ def fetch(prefix: Path, d: Download) -> None:
     target = download_dir(prefix, d.name)
     if target.exists():
         shutil.rmtree(target)
+
+    def wanted(name: str) -> bool:
+        return not d.members or any(fnmatch.fnmatch(name, pattern) for pattern in d.members)
+
     if archive.name.endswith(".zip"):
         with zipfile.ZipFile(archive) as z:
-            z.extractall(target)
-    elif archive.name.endswith((".tar.gz", ".tgz")):
-        with tarfile.open(archive, "r:gz") as t:
-            t.extractall(target, filter="data")  # nothing outside the target, no device files
-    else:
-        raise SystemExit(f"{d.name}: don't know how to unpack {archive.name}")
+            z.extractall(target, members=[n for n in z.namelist() if wanted(n)])
+    elif archive.name.endswith((".tar.gz", ".tgz", ".tar.xz")):
+        with tarfile.open(archive, "r:*") as t:
+            # Streamed, member by member, so a large archive is never held whole; the "data" filter
+            # keeps everything inside the target, with no device files or links out of it.
+            for member in t:
+                if wanted(member.name):
+                    t.extract(member, target, filter="data")
+    else:  # a single program (rustup-init), kept as it is
+        target.mkdir(parents=True)
+        shutil.copy2(archive, target / archive.name)
+        os.chmod(target / archive.name, 0o755)
 
 
 def read_record(prefix: Path) -> dict[str, str]:
