@@ -45,7 +45,7 @@ QGSDK is the tooling; an application is compiled and packaged from its own check
 | Python | 3.11 to 3.13 | ✓ | ✓ | ✓ | installed by uv, inside the prefix |
 | git | | MinGit 2.56.0 | the system's | the Xcode command-line tools' | |
 | **every profile** | | | | | |
-| Python | 3.13.16 | ✓ | ✓ | ✓ | QGSDK's own scripts only; never part of an application |
+| Python | 3.14.10 | ✓ | ✓ | ✓ | QGSDK's own scripts only; never part of an application |
 
 What QGSDK can't install without root or admin rights comes from the system, and the installer checks
 for it first: on Windows Microsoft's C++ Build Tools (desktop); on Linux a C++ compiler and the
