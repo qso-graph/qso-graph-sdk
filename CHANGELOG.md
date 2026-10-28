@@ -10,9 +10,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Security
 
 - **QGSDK's own Python is 3.14.10** (was 3.13.16), for the eMudhra CA advisory: 3.13.16 and the pip it
-  carries still trust intermediate CAs with trivially weak keys. 3.13.18 is the fixed 3.13, but 3.13
-  now gets source-only releases and has no Windows build, so QGSDK moves to 3.14.10, which bundles
-  pip 26.2.2. Every download is checked against the SHA-256 its publisher lists. The locked tooling
+  carries still trust intermediate CAs with trivially weak keys. 3.13.18 is the fixed 3.13, but
+  QGSDK takes its Windows Python from python.org (the NuGet package), and python.org publishes no
+  Windows build of 3.13.18: 3.13 is in its source-only phase. 3.14.10 is on python.org for Windows
+  and on python-build-standalone for the rest, bundles pip 26.2.2, and is supported longer. Every download is checked against the SHA-256 its publisher lists. The locked tooling
   list drops `backports-zstd`, needed only before 3.14.
 - **CI asks for exact patch releases** (3.11.18, 3.12.16, 3.13.18, 3.14.10) instead of "3.13", which
   accepts whatever the runner already has. `tests/test_pythons.py` fails a minor version or a patch
