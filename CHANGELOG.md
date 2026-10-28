@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-28
+
 ### Security
 
 - **QGSDK's own Python is 3.14.10** (was 3.13.16), for the eMudhra CA advisory: 3.13.16 and the pip it
