@@ -14,7 +14,7 @@ listed, checked for, and left to the developer to install.
   across versions, so the system compiler matches. Qt publishes no compiler for Linux.
 - **A pinned Python, not the system's.** System Pythons differ in version, and some distributions split
   out `venv` (Debian needs `python3-venv`). python-build-standalone is the relocatable CPython build uv
-  uses: a tarball, no root, the same 3.13.16 as on Windows.
+  uses: a tarball, no root, the same 3.14.10 as on Windows.
 - **System packages: checked, never installed.** Installing them takes root, which QGSDK never asks
   for. `bootstrap/install.sh` checks for each library Qt loads and prints the one command, for dnf or
   apt, that installs them all. The lists were proved on clean Rocky 9 and Debian 12 containers.
