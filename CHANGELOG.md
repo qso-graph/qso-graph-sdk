@@ -5,7 +5,7 @@ All notable changes to QSO Graph SDK (QGSDK) are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.1] - 2026-10-28
 
 ### Security
 
@@ -13,8 +13,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   carries still trust intermediate CAs with trivially weak keys. 3.13.18 is the fixed 3.13, but
   QGSDK takes its Windows Python from python.org (the NuGet package), and python.org publishes no
   Windows build of 3.13.18: 3.13 is in its source-only phase. 3.14.10 is on python.org for Windows
-  and on python-build-standalone for the rest, bundles pip 26.2.2, and is supported longer. Every download is checked against the SHA-256 its publisher lists. The locked tooling
-  list drops `backports-zstd`, needed only before 3.14.
+  and on python-build-standalone for the rest, bundles pip 26.2.2, and is supported longer. Every
+  download is checked against the SHA-256 its publisher lists. The locked tooling list drops
+  `backports-zstd`, needed only before 3.14.
 - **CI asks for exact patch releases** (3.11.18, 3.12.16, 3.13.18, 3.14.10) instead of "3.13", which
   accepts whatever the runner already has. `tests/test_pythons.py` fails a minor version or a patch
   older than the advisory's, in the workflows and in `manifest.json`.
