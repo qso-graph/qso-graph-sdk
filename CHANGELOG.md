@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **uv 0.13.6** in the `mcp` profile, the version the lab uses, so a server is built with the same uv
+  everywhere. Each download is checked against the SHA-256 uv publishes for it. (#21)
+
 ## [0.1.0] - 2026-10-26
 
 The first release.

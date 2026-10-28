@@ -41,7 +41,7 @@ QGSDK is the tooling; an application is compiled and packaged from its own check
 | C/C++ compiler | | Microsoft's C++ Build Tools (needs an administrator) | the system's GCC | Apple's clang (Xcode command-line tools) | |
 | git | | MinGit 2.56.0 | the system's | the Xcode command-line tools' | |
 | **mcp** | | | | | |
-| uv | 0.13.5 | ✓ | ✓ | ✓ | the servers' environments, tests and builds |
+| uv | 0.13.6 | ✓ | ✓ | ✓ | the servers' environments, tests and builds |
 | Python | 3.11 to 3.13 | ✓ | ✓ | ✓ | installed by uv, inside the prefix |
 | git | | MinGit 2.56.0 | the system's | the Xcode command-line tools' | |
 | **every profile** | | | | | |
