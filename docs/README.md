@@ -5,5 +5,5 @@
 - [decisions/](decisions/): why QGSDK is built the way it is; the newest,
   [0005](decisions/0005-profiles-and-macos.md), is profiles and macOS
 
-The full design is in `QGSDK-SPEC.md`, kept for now in the project's planning repository; its parts
-move here as they are built.
+The full design is kept for now in a private planning document, `QGSDK-SPEC.md`; its parts move here
+as they are built, so everything you need to use or change QGSDK is in this repository.

@@ -9,7 +9,7 @@
 #
 # Needs from the system what QGSDK can't install without root. Always: curl and tar. logger on Linux: a
 # C++17 compiler (GCC), the OpenGL, EGL and xkbcommon headers and the libraries Qt's Linux build loads;
-# desktop on Linux: a C/C++ compiler, make and git; mcp on Linux: git; every profile on macOS: Apple's
+# desktop on Linux: a C/C++ compiler, make, git, unzip and libatomic; mcp on Linux: git; every profile on macOS: Apple's
 # Xcode command-line tools (clang, make, git). It checks
 # for them and, if any is missing, prints the command that installs them and stops before installing
 # the profile. No root, no Qt account, no system Python.

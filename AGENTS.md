@@ -49,9 +49,9 @@ uv sync --group dev && uv run pytest      # the Python tests; also uv run ruff c
 tests/check.sh                            # the full check, on a clean machine or container
 ```
 
-- **What CI checks:** ruff, mypy, the Python tests on 3.11 to 3.13, an audit of the locked
+- **What CI checks:** ruff, mypy, the Python tests on 3.11 to 3.14, an audit of the locked
   dependencies, and, when the installer, the manifest or the checks change (and weekly), the full check
-  with every profile on Windows, Linux, Apple-silicon and Intel Macs. **It does not check** a truly
+  with every profile on Windows, Linux (x86-64, and arm64 for desktop and mcp), Apple-silicon and Intel Macs. **It does not check** a truly
   fresh machine: GitHub's runners carry tools of their own, so a release is also checked on a clean VM
   (`docs/m0.md`).
 

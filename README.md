@@ -39,11 +39,11 @@ QGSDK is the tooling; an application is compiled and packaged from its own check
 | libclang | 23.1.4 | ✓ | | | bindgen, which the FIPS module needs on Windows (only libclang and its headers are unpacked) |
 | Perl | 5.42.3.1 | ✓ | | | the FIPS module's build on Windows (Strawberry Perl's portable build; only `perl\` is unpacked) |
 | C/C++ compiler | | Microsoft's C++ Build Tools (needs an administrator) | the system's GCC | Apple's clang (Xcode command-line tools) | |
-| git | | MinGit 2.56.0 | the system's | the Xcode command-line tools' | |
+| git | | MinGit 2.56.0.4 | the system's | the Xcode command-line tools' | |
 | **mcp** | | | | | |
 | uv | 0.13.6 | ✓ | ✓ | ✓ | the servers' environments, tests and builds |
 | Python | 3.11 to 3.13 | ✓ | ✓ | ✓ | installed by uv, inside the prefix |
-| git | | MinGit 2.56.0 | the system's | the Xcode command-line tools' | |
+| git | | MinGit 2.56.0.4 | the system's | the Xcode command-line tools' | |
 | **every profile** | | | | | |
 | Python | 3.14.10 | ✓ | ✓ | ✓ | QGSDK's own scripts only; never part of an application |
 
@@ -97,7 +97,7 @@ winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait
 ## Developer setup (Linux)
 
 Tested on Rocky Linux 9, Debian 12 and Ubuntu 24.04; any x86-64 distribution of that age or newer
-should work.
+should work, and arm64 for the desktop and mcp profiles.
 
 1. Install what your profiles need from your distribution (the one step that needs root). For every
    profile:
@@ -166,7 +166,7 @@ Each release carries `SHA256SUMS`, and GitHub's signed record that this reposito
 made every file. In the folder you downloaded to:
 
 ```powershell
-(Get-FileHash qgsdk-0.1.0.zip -Algorithm SHA256).Hash    # Windows: compare with SHA256SUMS
+(Get-FileHash qgsdk-0.1.1.zip -Algorithm SHA256).Hash    # Windows: compare with SHA256SUMS
 ```
 
 ```sh
@@ -177,7 +177,7 @@ shasum -a 256 -c SHA256SUMS --ignore-missing             # macOS
 With the [GitHub CLI](https://cli.github.com/), on any platform, this checks who made it:
 
 ```sh
-gh attestation verify qgsdk-0.1.0.zip -R qso-graph/qso-graph-sdk
+gh attestation verify qgsdk-0.1.1.zip -R qso-graph/qso-graph-sdk
 ```
 
 ## Checking it works

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 the QGSDK contributors (see AUTHORS). Part of QGSDK; see LICENSE.
-"""QGSDK: one command to the tools for the QSO Graph software you work on, chosen by profile (logger, mcp).
+"""QGSDK: one command to the tools for the QSO Graph software you work on, chosen by profile (desktop, logger, mcp).
 
 The pieces:
 - manifest.py  reads manifest.json, the single list of pinned versions, grouped by profile.
