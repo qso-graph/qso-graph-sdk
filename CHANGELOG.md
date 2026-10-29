@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The docs match what QGSDK installs.** The `desktop` profile is named wherever the profiles are
+  listed (the package description, the Windows installer's help); its Windows tools include Perl and
+  MinGit, and on Linux it needs unzip and libatomic too. Linux arm64 is listed where it is supported,
+  the CI Pythons are 3.11 to 3.14, MinGit is 2.56.0.4, and the verify commands name 0.1.1's files.
+
 ## [0.1.1] - 2026-10-28
 
 ### Security

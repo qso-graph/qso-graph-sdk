@@ -7,7 +7,7 @@
 .DESCRIPTION
   Choose profiles with -Profiles (several: -Profiles logger,mcp); with none, it asks. `logger` is Qt
   and its tools for QSO Graph Logger; `mcp` is uv, the Pythons the MCP servers test against, and git;
-  `desktop` is Node.js, Rust, Go, CMake, Ninja, NASM and libclang for QSO Graph Desktop.
+  `desktop` is Node.js, Rust, Go, CMake, Ninja, NASM, libclang, Perl and MinGit for QSO Graph Desktop.
   Running it again with another profile adds it.
 
   Needs nothing installed first: no Python, no git, no Visual Studio, no Qt account, no admin rights.
@@ -19,7 +19,8 @@
   1. QGSDK's own Python (the official python.org build, pinned and checked by SHA-256)
   2. aqtinstall and QGSDK's tooling into a virtual environment
   3. the profiles: logger is Qt, the matched MinGW compiler, CMake, Ninja, and NSIS for installers;
-     mcp is uv, its Pythons and MinGit (all versions from manifest.json)
+     mcp is uv, its Pythons and MinGit; desktop is Node.js, Rust, Go, CMake, Ninja, NASM,
+     libclang, Perl and MinGit (all versions from manifest.json)
 
   Safe to run again: it skips what's already there.
 
