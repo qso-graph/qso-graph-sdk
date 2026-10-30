@@ -2,7 +2,7 @@
 # Run workflow, from main, with the version. Merging into main publishes nothing.
 #
 # It refuses unless every check holds: run from main, pyproject.toml says this version, CHANGELOG.md has
-# its section, its tag is free, its milestone has no open issue, and CI's run of this very commit is
+# its section, its tag is free, its milestone exists, and CI's run of this very commit is
 # all green, with the install check passed on every platform. Then it makes the archives from that
 # commit, with SHA256SUMS and GitHub's signed provenance; publishes them as a draft; downloads them back
 # and checks them; and only then makes the release public, which creates the tag. The tag is an output
@@ -65,8 +65,10 @@ jobs:
           if [ -z "$milestone" ]; then
             fail "there is no milestone ${VERSION}"
           else
-            read -r number open <<< "$milestone"
-            [ "$open" = 0 ] && echo "✓ milestone ${VERSION} has no open issue" || fail "milestone ${VERSION} has ${open} open issue(s)"
+            read -r number _ <<< "$milestone"
+            # Its issues do not gate a release (KI7MT, 2026-10-30): a milestone can hold any number,
+            # deferred or won't-fix among them.
+            echo "✓ milestone ${VERSION}"
             echo "milestone=${number}" >> "$GITHUB_OUTPUT"
           fi
           # CI's push run of this exact commit: ci-all-green, and the install check on all five
