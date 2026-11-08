@@ -9,6 +9,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- AGENTS.md and CLAUDE.md: the organization's shared agent guide.
+
+### Changed
+
 - README: American spelling (license).
 
 ### Fixed
