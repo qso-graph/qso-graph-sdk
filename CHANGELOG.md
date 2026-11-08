@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- README: American spelling (license).
+
 ### Fixed
 
 - **The docs match what QGSDK installs.** The `desktop` profile is named wherever the profiles are

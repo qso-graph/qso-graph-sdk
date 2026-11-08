@@ -201,12 +201,12 @@ it pins are the ones installed, and runs its setup, build and fast check. It end
 installer changes, and weekly, so a moved download, or a QSO Graph Desktop pin QGSDK doesn't match, is
 found within a week.
 
-## What it downloads, and their licences
+## What it downloads, and their licenses
 
 None of these is part of this repository; each is downloaded from its publisher and used under its own
-licence.
+license.
 
-| Tool | Profile | Licence |
+| Tool | Profile | License |
 |---|---|---|
 | Python (python.org's Windows build; python-build-standalone on Linux and macOS) | every profile | PSF-2.0 |
 | aqtinstall, and its Python dependencies | every profile | MIT (each dependency its own) |
@@ -230,4 +230,4 @@ licence.
 
 - [docs/](docs/): how QGSDK works, and the decisions behind it (MinGW, aqtinstall, CMake presets, profiles)
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to propose a change
-- Licence: **GPL-3.0-or-later** ([LICENSE](LICENSE), [NOTICE](NOTICE)), like JTSDK and FLSDK
+- License: **GPL-3.0-or-later** ([LICENSE](LICENSE), [NOTICE](NOTICE)), like JTSDK and FLSDK
