@@ -166,7 +166,7 @@ Each release carries `SHA256SUMS`, and GitHub's signed record that this reposito
 made every file. In the folder you downloaded to:
 
 ```powershell
-(Get-FileHash qgsdk-0.1.1.zip -Algorithm SHA256).Hash    # Windows: compare with SHA256SUMS
+(Get-FileHash qgsdk-0.1.2.zip -Algorithm SHA256).Hash    # Windows: compare with SHA256SUMS
 ```
 
 ```sh
@@ -177,7 +177,7 @@ shasum -a 256 -c SHA256SUMS --ignore-missing             # macOS
 With the [GitHub CLI](https://cli.github.com/), on any platform, this checks who made it:
 
 ```sh
-gh attestation verify qgsdk-0.1.1.zip -R qso-graph/qso-graph-sdk
+gh attestation verify qgsdk-0.1.2.zip -R qso-graph/qso-graph-sdk
 ```
 
 ## Checking it works

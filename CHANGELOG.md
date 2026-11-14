@@ -7,20 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-14
+
+### Security
+
+- **soupsieve 4.1** (was 2.10) in the tooling QGSDK installs, for CVE-2026-126190, -126191 and
+  -126193. Nothing else in `bootstrap/tooling-requirements.txt` moved.
+
 ### Changed
 
 - AGENTS.md and CLAUDE.md: the organization's shared agent guide.
-
-### Changed
-
 - README: American spelling (license).
+- **The install checks reuse Desktop's downloaded sources.** `tests/check.sh` and
+  `tests/windows-check.ps1` take `QGSDK_DESKTOP_CACHE`, a folder carried between runs for Desktop's
+  `vendor/.cache`, and CI keeps it in the Actions cache. adif.org.uk is no longer asked on every run;
+  a slow answer from it had failed the Windows check.
 
 ### Fixed
 
 - **The docs match what QGSDK installs.** The `desktop` profile is named wherever the profiles are
   listed (the package description, the Windows installer's help); its Windows tools include Perl and
   MinGit, and on Linux it needs unzip and libatomic too. Linux arm64 is listed where it is supported,
-  the CI Pythons are 3.11 to 3.14, MinGit is 2.56.0.4, and the verify commands name 0.1.1's files.
+  the CI Pythons are 3.11 to 3.14, MinGit is 2.56.0.4, and the verify commands name the current release's files.
 
 ## [0.1.1] - 2026-10-28
 
