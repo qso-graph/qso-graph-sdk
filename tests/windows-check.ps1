@@ -14,7 +14,8 @@
      optional, so a developer can use CMake directly or their IDE);
   4. checks NSIS (makensis), which CPack uses to make an installer, runs;
   mcp:
-  5. runs each Python the MCP servers test against, through uv, and git; uv's Pythons are in the prefix;
+  5. runs each Python the MCP servers test against, through uv, and git; uv's Pythons are in the prefix,
+     and so are their python3.x launchers (none in ~\.local\bin, uv's default);
   desktop:
   6. clones QSO Graph Desktop ($env:QGSDK_DESKTOP_REF, default main), checks its pinned Node.js and Rust
      are the versions QGSDK installed, and runs its setup and its fast check.
@@ -87,6 +88,10 @@ try {
             if ($LASTEXITCODE -ne 0) { throw "uv has no Python $v" }
             if (-not $Found.StartsWith($Prefix)) { throw "Python $v is not the prefix's: $Found" }
             Run "`"$Found`" -c `"import sys, ssl; print(sys.version.split()[0], ssl.OPENSSL_VERSION)`""
+            # Nothing outside the prefix: uv puts a launcher for each Python it installs in a bin folder,
+            # ~\.local\bin unless told otherwise.
+            $Stray = Join-Path $env:USERPROFILE ".local\bin\python$v.exe"
+            if (Test-Path $Stray) { throw "outside the prefix: $Stray" }
         }
         $Git = (Get-Command git).Source
         if (-not $Git.StartsWith($Prefix)) { throw "git is not the prefix's: $Git" }

@@ -10,7 +10,8 @@
 #   3. builds it again with plain CMake, without QGSDK's wrapper (the deletion test: the wrapper must
 #      stay optional, so a developer can use CMake directly or their IDE), and runs it;
 #   mcp:
-#   4. runs each Python the MCP servers test against, through uv, and git; uv's Pythons are in the prefix;
+#   4. runs each Python the MCP servers test against, through uv, and git; uv's Pythons are in the prefix,
+#      and so are their python3.x links (none in ~/.local/bin, uv's default);
 #   desktop:
 #   5. clones QSO Graph Desktop (QGSDK_DESKTOP_REF, default main), checks its pinned Node.js and Rust are
 #      the versions QGSDK installed, and runs its setup and its fast check (make setup, make check).
@@ -74,6 +75,12 @@ if has mcp; then
             found="$(uv python find --managed-python "$v")" || { echo "uv has no Python $v"; exit 1; }
             case "$found" in "$prefix"/*) ;; *) echo "Python $v is not the prefix's: $found"; exit 1 ;; esac
             "$found" -c 'import sys, ssl; print(sys.version.split()[0], ssl.OPENSSL_VERSION)' || exit 1
+        done
+        # Nothing outside the prefix: uv links each Python it installs into a bin folder, ~/.local/bin
+        # unless told otherwise. A link there pointing into this prefix is QGSDK writing outside it.
+        for link in "$HOME"/.local/bin/python3.*; do
+            [ -L "$link" ] || continue
+            case "$(readlink "$link")" in "$prefix"/*) echo "outside the prefix: $link"; exit 1 ;; esac
         done
         git --version || exit 1
     ) || fail "the mcp profile"

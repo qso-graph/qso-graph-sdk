@@ -126,12 +126,14 @@ def test_the_environment_puts_qt_and_the_tools_first():
     assert parts[-2] == str(Path("/sdk/tools/NSIS/nsis-3.13"))  # makensis, for CPack
     assert env["CMAKE_PREFIX_PATH"] == str(Path(f"/sdk/Qt/{p.qt.version}/mingw_64"))
     assert "UV_PYTHON_INSTALL_DIR" not in env
+    assert "UV_PYTHON_BIN_DIR" not in env
 
 
 def test_the_mcp_environment_keeps_uv_inside_the_prefix():
     env = build_environment(Path("/sdk"), [mcp("linux")], base={"PATH": "/usr/bin"})
     assert env["PATH"].split(os.pathsep)[0] == str(Path("/sdk/tools/uv/uv-x86_64-unknown-linux-gnu"))
     assert env["UV_PYTHON_INSTALL_DIR"] == str(Path("/sdk/uv/python"))
+    assert env["UV_PYTHON_BIN_DIR"] == str(Path("/sdk/uv/bin"))
     assert env["UV_CACHE_DIR"] == str(Path("/sdk/uv/cache"))
     assert "CMAKE_PREFIX_PATH" not in env
 
