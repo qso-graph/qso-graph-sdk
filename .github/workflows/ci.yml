@@ -125,10 +125,20 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -q -y build-essential libatomic1 unzip g++ libgl-dev libegl-dev libxkbcommon-dev libdbus-1-3 libfontconfig1 libfreetype6 libglib2.0-0 libwayland-cursor0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-util1 libxcb-xkb1 git
+      # Desktop's downloaded sources (the ADIF archive, county lists), carried between runs so adif.org.uk is
+      # not asked on every run. Each run saves under its own key and restores the newest; Desktop's fetch
+      # scripts check every cached file's pinned SHA-256, so a stale entry costs only a download.
+      - name: Desktop's downloaded sources (cache)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/desktop-sources
+          key: desktop-sources-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: desktop-sources-${{ runner.os }}-
       - name: tests/check.sh
         if: runner.os != 'Windows'
         env:
           PROFILES: ${{ matrix.profiles }}
+          QGSDK_DESKTOP_CACHE: ${{ runner.temp }}/desktop-sources
         run: |
           args=()
           for p in $PROFILES; do args+=(--profile "$p"); done
@@ -138,6 +148,7 @@ jobs:
         shell: pwsh
         env:
           PROFILES: ${{ matrix.profiles }}
+          QGSDK_DESKTOP_CACHE: ${{ runner.temp }}\desktop-sources
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\windows-check.ps1 -Prefix "$env:RUNNER_TEMP\qgsdk" -Profiles ($env:PROFILES -replace ' ', ',')
 
   ci-all-green:

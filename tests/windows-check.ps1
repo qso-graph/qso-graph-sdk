@@ -116,9 +116,21 @@ try {
         Run "go version"
         Push-Location $Work
         try {
+            # QGSDK_DESKTOP_CACHE, when set, carries Desktop's downloaded sources (vendor\.cache) between runs,
+            # so adif.org.uk and the county sources are asked once; Desktop's fetch scripts check each cached
+            # file's pinned SHA-256 as they do a fresh download.
+            $Cache = $env:QGSDK_DESKTOP_CACHE
+            if ($Cache -and (Test-Path $Cache)) {
+                New-Item -ItemType Directory -Force -Path "vendor\.cache" | Out-Null
+                Copy-Item -Recurse -Force (Join-Path $Cache "*") "vendor\.cache"
+            }
             Run "npm ci"
             Run "node scripts/fetch-adif.mjs"
             Run "node scripts/fetch-counties.mjs"
+            if ($Cache) {
+                New-Item -ItemType Directory -Force -Path $Cache | Out-Null
+                Copy-Item -Recurse -Force "vendor\.cache\*" $Cache
+            }
             Run "npm run build"
             Run "node scripts/fetch-pota.mjs"  # make setup's last step: it reads what the build made
             Run "npm run check"

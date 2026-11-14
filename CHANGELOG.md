@@ -18,6 +18,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - AGENTS.md and CLAUDE.md: the organization's shared agent guide.
 - README: American spelling (license).
+- **The install checks reuse Desktop's downloaded sources.** `tests/check.sh` and
+  `tests/windows-check.ps1` take `QGSDK_DESKTOP_CACHE`, a folder carried between runs for Desktop's
+  `vendor/.cache`, and CI keeps it in the Actions cache. adif.org.uk is no longer asked on every run;
+  a slow answer from it had failed the Windows check.
 
 ### Fixed
 

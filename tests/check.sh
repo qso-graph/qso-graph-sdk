@@ -101,7 +101,14 @@ if has desktop; then
         rustc --version && go version && cmake --version | head -1
         # make setup, then make check. Chained with &&: bash ignores `set -e` inside ( ... ) || fail, so a failed step would not stop
         # the ones after it, and the last one alone would decide the result.
-        npm ci && node scripts/fetch-adif.mjs && node scripts/fetch-counties.mjs && npm run build && node scripts/fetch-pota.mjs && npm run check
+        # QGSDK_DESKTOP_CACHE, when set, carries Desktop's downloaded sources (vendor/.cache) between runs, so
+        # adif.org.uk and the county sources are asked once; Desktop's fetch scripts check each cached file's
+        # pinned SHA-256 as they do a fresh download.
+        cache="${QGSDK_DESKTOP_CACHE:-}"
+        if [ -n "$cache" ] && [ -d "$cache" ]; then mkdir -p vendor/.cache && cp -R "$cache/." vendor/.cache/ || exit 1; fi
+        npm ci && node scripts/fetch-adif.mjs && node scripts/fetch-counties.mjs \
+            && { [ -z "$cache" ] || { mkdir -p "$cache" && cp -R vendor/.cache/. "$cache/"; }; } \
+            && npm run build && node scripts/fetch-pota.mjs && npm run check
     ) || fail "QSO Graph Desktop with the desktop profile"
     rm -rf "$work"
 fi
