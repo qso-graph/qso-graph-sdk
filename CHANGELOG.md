@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-16
+
 ### Fixed
 
 - The `mcp` profile no longer writes outside the prefix: uv linked each Python it installed into
