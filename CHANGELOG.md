@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-16
+
+### Fixed
+
+- The `mcp` profile no longer writes outside the prefix: uv linked each Python it installed into
+  `~/.local/bin`. Its links now go to `prefix/uv/bin`, and `tests/check.sh` fails if any link to the
+  prefix is left in `~/.local/bin`.
+
 ## [0.1.2] - 2026-11-14
 
 ### Security

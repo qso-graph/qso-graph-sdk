@@ -70,6 +70,8 @@ def sdk_variables(prefix: Path, profiles: list[Profile]) -> dict[str, str]:
             env["CMAKE_PREFIX_PATH"] = str(qt_dir(prefix, p.qt))
         if p.python_versions:
             env["UV_PYTHON_INSTALL_DIR"] = str(uv_dir(prefix) / "python")
+            # Its python3.x links too: by default uv puts them in ~/.local/bin, outside the prefix.
+            env["UV_PYTHON_BIN_DIR"] = str(uv_dir(prefix) / "bin")
             env["UV_CACHE_DIR"] = str(uv_dir(prefix) / "cache")
         if p.rust:
             env["RUSTUP_HOME"] = str(rust_dir(prefix) / "rustup")
